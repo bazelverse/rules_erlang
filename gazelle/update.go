@@ -18,7 +18,7 @@ import (
 	"github.com/bazelbuild/bazel-gazelle/language"
 	"github.com/bazelbuild/bazel-gazelle/rule"
 	"github.com/bazelbuild/rules_go/go/tools/bazel"
-	"github.com/rabbitmq/rules_erlang/gazelle/fetch"
+	"github.com/bazelverse/rules_erlang/gazelle/fetch"
 )
 
 const (

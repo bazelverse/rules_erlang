@@ -1,5 +1,6 @@
 load("@bazel_gazelle//:def.bzl", "gazelle_binary")
 load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
 
 exports_files([
     "dot_app_to_json.sh",
@@ -26,7 +27,7 @@ go_library(
         "update.go",
         "util.go",
     ],
-    importpath = "github.com/rabbitmq/rules_erlang/gazelle",
+    importpath = "github.com/bazelverse/rules_erlang/gazelle",
     visibility = ["//visibility:public"],
     deps = [
         "//gazelle/fetch",

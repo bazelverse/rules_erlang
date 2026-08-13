@@ -1,20 +1,21 @@
-module github.com/rabbitmq/rules_erlang
+module github.com/bazelverse/rules_erlang
 
-go 1.19
+go 1.24.12
 
 require (
-	github.com/bazelbuild/bazel-gazelle v0.33.0
-	github.com/bazelbuild/rules_go v0.41.0
+	github.com/bazelbuild/bazel-gazelle v0.51.3
+	github.com/bazelbuild/rules_go v0.62.0
 )
 
 require (
-	github.com/bazelbuild/buildtools v0.0.0-20230831140646-386244e73fc4
-	github.com/bmatcuk/doublestar/v4 v4.6.0
+	github.com/bazelbuild/buildtools v0.0.0-20250930140053-2eb4fccefb52
+	github.com/bmatcuk/doublestar/v4 v4.9.1
 	gopkg.in/yaml.v2 v2.4.0
 )
 
 require (
-	golang.org/x/mod v0.12.0 // indirect
-	golang.org/x/sys v0.12.0 // indirect
-	golang.org/x/tools v0.7.0 // indirect
+	github.com/bazel-contrib/bazel-gazelle/v2 v2.0.0-2 // indirect
+	golang.org/x/mod v0.25.0 // indirect
+	golang.org/x/sys v0.33.0 // indirect
+	golang.org/x/tools/go/vcs v0.1.0-deprecated // indirect
 )

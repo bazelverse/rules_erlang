@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/rabbitmq/rules_erlang/gazelle/slices"
+	"github.com/bazelverse/rules_erlang/gazelle/slices"
 	"gopkg.in/yaml.v2"
 )
 

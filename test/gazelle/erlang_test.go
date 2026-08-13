@@ -9,7 +9,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"
-	erlang "github.com/rabbitmq/rules_erlang/gazelle"
+	erlang "github.com/bazelverse/rules_erlang/gazelle"
 	"strings"
 	"testing"
 )

@@ -1,7 +1,7 @@
 package erlang_test
 
 import (
-	erlang "github.com/rabbitmq/rules_erlang/gazelle"
+	erlang "github.com/bazelverse/rules_erlang/gazelle"
 )
 
 type fakeErlParserCall struct {

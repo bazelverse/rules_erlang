@@ -3,7 +3,7 @@ package mutable_set_test
 import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/rabbitmq/rules_erlang/gazelle/mutable_set"
+	"github.com/bazelverse/rules_erlang/gazelle/mutable_set"
 	"strings"
 	"testing"
 )

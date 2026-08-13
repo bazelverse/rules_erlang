@@ -10,8 +10,8 @@ import (
 	"github.com/bazelbuild/bazel-gazelle/config"
 	"github.com/bazelbuild/bazel-gazelle/rule"
 	"github.com/bmatcuk/doublestar/v4"
-	"github.com/rabbitmq/rules_erlang/gazelle/mutable_set"
-	"github.com/rabbitmq/rules_erlang/gazelle/slices"
+	"github.com/bazelverse/rules_erlang/gazelle/mutable_set"
+	"github.com/bazelverse/rules_erlang/gazelle/slices"
 )
 
 const (

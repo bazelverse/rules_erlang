@@ -13,8 +13,8 @@ import (
 	"github.com/bazelbuild/bazel-gazelle/rule"
 	"github.com/bazelbuild/buildtools/build"
 	"github.com/bmatcuk/doublestar/v4"
-	"github.com/rabbitmq/rules_erlang/gazelle/fetch"
-	"github.com/rabbitmq/rules_erlang/gazelle/slices"
+	"github.com/bazelverse/rules_erlang/gazelle/fetch"
+	"github.com/bazelverse/rules_erlang/gazelle/slices"
 )
 
 const (
@@ -252,7 +252,10 @@ func (erlang *erlangLang) updateRules(c *config.Config, f *rule.File, rules []*r
 	var strictlyNew []*rule.Rule
 
 	for _, newRule := range rules {
-		oldRule, _ := merger.Match(f.Rules, newRule, kinds[newRule.Kind()])
+		// nil aliasedKinds: this extension declares no kind aliases, and Match only
+		// reads the map as aliasedKinds[y.Kind()], which yields "" on a nil map. So
+		// this matches on exact kind, exactly as it did before the parameter existed.
+		oldRule, _ := merger.Match(f.Rules, newRule, kinds[newRule.Kind()], nil)
 		if oldRule != nil {
 			oldToNew[oldRule] = newRule
 		} else {

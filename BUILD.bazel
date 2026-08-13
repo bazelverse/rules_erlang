@@ -35,7 +35,7 @@ string_flag(
 
 # Gazelle configuration options.
 # See https://github.com/bazelbuild/bazel-gazelle#running-gazelle-with-bazel
-# gazelle:prefix github.com/rabbitmq/rules_erlang
+# gazelle:prefix github.com/bazelverse/rules_erlang
 # gazelle:exclude bazel-out
 gazelle(name = "gazelle")
 

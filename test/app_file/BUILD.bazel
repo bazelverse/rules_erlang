@@ -1,4 +1,5 @@
 load("@rules_erlang//:app_file.bzl", "app_file")
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
 
 app_file(
     name = "app_file",

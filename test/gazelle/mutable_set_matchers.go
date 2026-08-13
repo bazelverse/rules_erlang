@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/onsi/gomega/types"
-	"github.com/rabbitmq/rules_erlang/gazelle/mutable_set"
+	"github.com/bazelverse/rules_erlang/gazelle/mutable_set"
 )
 
 // we need go 1.20 in order to drop the type parameter and cast

@@ -11,7 +11,7 @@ import (
 	"github.com/bazelbuild/bazel-gazelle/language"
 	"github.com/bazelbuild/bazel-gazelle/rule"
 	"github.com/bazelbuild/buildtools/build"
-	"github.com/rabbitmq/rules_erlang/gazelle/mutable_set"
+	"github.com/bazelverse/rules_erlang/gazelle/mutable_set"
 )
 
 type ErlangAppFile struct {

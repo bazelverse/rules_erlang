@@ -3,7 +3,7 @@ package fetch_test
 import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/rabbitmq/rules_erlang/gazelle/fetch"
+	"github.com/bazelverse/rules_erlang/gazelle/fetch"
 	"testing"
 )
 

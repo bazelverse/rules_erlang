@@ -5,6 +5,6 @@ go_library(
     srcs = [
         "slices.go",
     ],
-    importpath = "github.com/rabbitmq/rules_erlang/gazelle/slices",
+    importpath = "github.com/bazelverse/rules_erlang/gazelle/slices",
     visibility = ["//visibility:public"],
 )

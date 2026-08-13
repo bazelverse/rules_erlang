@@ -8,6 +8,6 @@ go_library(
         "hex_pm.go",
         "tar.go",
     ],
-    importpath = "github.com/rabbitmq/rules_erlang/gazelle/fetch",
+    importpath = "github.com/bazelverse/rules_erlang/gazelle/fetch",
     visibility = ["//visibility:public"],
 )
