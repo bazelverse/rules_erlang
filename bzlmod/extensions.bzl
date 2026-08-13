@@ -18,7 +18,7 @@ load(
     "version_from_string",
 )
 load(
-    "//:rules_erlang.bzl",
+    "//private:xref_runner_sources.bzl",
     "xref_runner_sources",
 )
 load(
