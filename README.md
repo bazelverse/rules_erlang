@@ -27,11 +27,58 @@ Bazel can load anyway. See [CHANGELOG.md](./CHANGELOG.md).
 
 ## Installation
 
-In `MODULE.bazel`:
+> **Git pre-release only.** Pick one of the two override methods below. Once the
+> Bazel Central Registry entry lands, delete the override and keep the
+> `bazel_dep`; nothing else changes.
+
+### Pinned to a release tag
 
 ```starlark
 bazel_dep(name = "rules_erlang", version = "3.18.0")
 
+archive_override(
+    module_name = "rules_erlang",
+    urls = ["https://github.com/bazelverse/rules_erlang/archive/refs/tags/3.18.0.tar.gz"],
+    strip_prefix = "rules_erlang-3.18.0",
+    integrity = "sha256-...",
+)
+```
+
+To get the `integrity` value, run the build once with the attribute omitted.
+Bazel fetches the archive and prints a warning containing the hash it computed;
+paste that in. A *wrong* value fails the build and names the expected one, so
+either route gets you there. Do not leave it out permanently: without it the
+archive is re-fetched unverified.
+
+### Pinned to a commit
+
+```starlark
+bazel_dep(name = "rules_erlang", version = "3.18.0")
+
+git_override(
+    module_name = "rules_erlang",
+    remote = "https://github.com/bazelverse/rules_erlang.git",
+    commit = "0000000000000000000000000000000000000000",
+)
+```
+
+`commit` takes a full SHA. Use this to track work that has no tag yet. Prefer
+the tag form for anything you ship: it is a fixed archive plus a checksum,
+rather than a repository that has to stay reachable and re-clone.
+
+The `version` in `bazel_dep` is still required either way. It is what the module
+reports to the rest of the graph; the override decides what is actually fetched.
+
+**Overrides only take effect in the root module.** If you depend on
+`rules_erlang` indirectly, through
+[rules_elixir](https://github.com/bazelverse/rules_elixir) for instance, the
+override still has to be declared in *your* `MODULE.bazel`, and you need one for
+every module in the graph that is not on the registry yet. An override written
+by a dependency is ignored.
+
+### Then, in the same `MODULE.bazel`
+
+```starlark
 erlang_config = use_extension(
     "@rules_erlang//bzlmod:extensions.bzl",
     "erlang_config",
