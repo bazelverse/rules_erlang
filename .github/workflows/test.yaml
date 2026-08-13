@@ -3,40 +3,16 @@ on:
   push:
     branches:
       - main
-      - 3.15.x
-      - 3.16.x
-      - bump-rbe
   pull_request:
 jobs:
   unit-test:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         otp:
-        - "25.3"
-        - "26.2"
-    steps:
-    - name: CHECKOUT
-      uses: actions/checkout@v4
-    - name: CONFIGURE ERLANG
-      uses: erlef/setup-beam@v1
-      with:
-        otp-version: ${{ matrix.otp }}
-    - name: UNIT TEST
-      run: |
-        ERLANG_HOME="$(dirname $(dirname $(which erl)))"
-        bazelisk test //... \
-          --noenable_bzlmod \
-          --color=yes
-  unit-test-bzlmod:
-    runs-on: ubuntu-20.04
-    strategy:
-      fail-fast: false
-      matrix:
-        otp:
-        - "25.3"
-        - "26.2"
+        - "28.5"
+        - "29.0"
     steps:
     - name: CHECKOUT
       uses: actions/checkout@v4
@@ -50,13 +26,13 @@ jobs:
         bazelisk test //... \
           --color=yes
   test:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         otp:
-        - "25.3"
-        - "26.2"
+        - "28.5"
+        - "29.0"
     steps:
     - name: CHECKOUT
       uses: actions/checkout@v4
@@ -67,9 +43,7 @@ jobs:
     - name: TEST
       working-directory: test
       run: |
-        ERLANG_HOME="$(dirname $(dirname $(which erl)))"
         bazelisk test //... \
-          --noenable_bzlmod \
           --color=yes
     - name: RESOVLE TEST LOGS PATH
       if: always()
@@ -83,39 +57,7 @@ jobs:
       with:
         name: bazel-testlogs-${{matrix.otp}}
         path: ${{ steps.resolve-test-logs-path.outputs.LOGS_PATH }}/*
-  test-bzlmod:
-    runs-on: ubuntu-20.04
-    strategy:
-      fail-fast: false
-      matrix:
-        otp:
-        - "25.3"
-        - "26.2"
-    steps:
-    - name: CHECKOUT
-      uses: actions/checkout@v4
-    - name: CONFIGURE ERLANG
-      uses: erlef/setup-beam@v1
-      with:
-        otp-version: ${{ matrix.otp }}
-    - name: TEST
-      working-directory: test
-      run: |
-        bazelisk test //... \
-          --color=yes
-    - name: RESOVLE TEST LOGS PATH
-      if: always()
-      working-directory: test
-      run: |
-        echo "LOGS_PATH=$(readlink -f bazel-testlogs)" >> $GITHUB_OUTPUT
-      id: resolve-test-logs-path
-    - name: CAPTURE TEST LOGS
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: bazel-testlogs-bzlmod-${{matrix.otp}}
-        path: ${{ steps.resolve-test-logs-path.outputs.LOGS_PATH }}/*
-  test-bzlmod-macos:
+  test-macos:
     runs-on: macos-latest
     steps:
     - name: CHECKOUT
@@ -139,15 +81,15 @@ jobs:
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: bazel-testlogs-bzlmod-macos
+        name: bazel-testlogs-macos
         path: ${{ steps.resolve-test-logs-path.outputs.LOGS_PATH }}/*
-  test-bzlmod-windows:
+  test-windows:
     runs-on: windows-latest
     strategy:
       fail-fast: false
       matrix:
         otp:
-        - "25.3"
+        - "29.0"
     steps:
     - name: CHECKOUT
       uses: actions/checkout@v4
@@ -184,10 +126,10 @@ jobs:
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: bazel-testlogs-bzlmod-windows-${{matrix.otp}}
+        name: bazel-testlogs-windows-${{matrix.otp}}
         path: test/logs.tar
-  test-bzlmod-internal-erlang:
-    runs-on: ubuntu-20.04
+  test-internal-erlang:
+    runs-on: ubuntu-latest
     steps:
     - name: CHECKOUT
       uses: actions/checkout@v4
@@ -223,10 +165,10 @@ jobs:
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: bazel-testlogs-bzlmod-internal-erlang
+        name: bazel-testlogs-internal-erlang
         path: ${{ steps.resolve-test-logs-path.outputs.LOGS_PATH }}/*
-  test-bzlmod-coverage:
-    runs-on: ubuntu-20.04
+  test-coverage:
+    runs-on: ubuntu-latest
     steps:
     - name: CHECKOUT
       uses: actions/checkout@v4
@@ -256,10 +198,10 @@ jobs:
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: bazel-testlogs-bzlmod-coverage
+        name: bazel-testlogs-coverage
         path: ${{ steps.resolve-test-logs-path.outputs.LOGS_PATH }}/*
   test-host-erlang-change-detected:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
     - name: CHECKOUT
       uses: actions/checkout@v4
@@ -292,7 +234,7 @@ jobs:
           echo "Fail"
         fi
   test-gazelle-extension:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
     - name: CHECKOUT
       uses: actions/checkout@v4
@@ -330,13 +272,11 @@ jobs:
   summary:
     needs:
     - unit-test
-    - unit-test-bzlmod
     - test
-    - test-bzlmod
-    - test-bzlmod-macos
-    - test-bzlmod-windows
-    - test-bzlmod-internal-erlang
-    - test-bzlmod-coverage
+    - test-macos
+    - test-windows
+    - test-internal-erlang
+    - test-coverage
     - test-host-erlang-change-detected
     - test-gazelle-extension
     runs-on: ubuntu-latest
