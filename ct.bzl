@@ -40,7 +40,7 @@ def ct_suite(
 
     erlang_bytecode(
         name = "{}_beam_files".format(suite_name),
-        hdrs = native.glob(["include/*.hrl", "src/*.hrl"] + additional_hdrs),
+        hdrs = native.glob(["include/*.hrl", "src/*.hrl"] + additional_hdrs, allow_empty = True),
         srcs = ["test/{}.erl".format(suite_name)] + additional_srcs,
         erlc_opts = erlc_opts,
         dest = "test",
@@ -69,7 +69,7 @@ def ct_suite_variant(
     if suite_name == "":
         suite_name = name
 
-    data_dir_files = native.glob(["test/{}_data/**/*".format(suite_name)])
+    data_dir_files = native.glob(["test/{}_data/**/*".format(suite_name)], allow_empty = True)
 
     _ct_test(
         shard_suite = Label("@rules_erlang//tools/shard_suite:shard_suite"),
@@ -116,7 +116,7 @@ def ct_test(
 
 def assert_suites(suite_names, suite_files = None):
     if suite_files == None:
-        suite_files = native.glob(["test/**/*_SUITE.erl"])
+        suite_files = native.glob(["test/**/*_SUITE.erl"], allow_empty = True)
     for f in suite_files:
         sn = f.rpartition("/")[-1].replace(".erl", "")
         if not sn in suite_names:
@@ -124,7 +124,7 @@ def assert_suites(suite_names, suite_files = None):
 
 def assert_suites2(suite_files = None):
     if suite_files == None:
-        suite_files = native.glob(["test/**/*_SUITE.erl"])
+        suite_files = native.glob(["test/**/*_SUITE.erl"], allow_empty = True)
     for f in suite_files:
         sn = f.rpartition("/")[-1].replace(".erl", "")
         if not sn in native.existing_rules():
