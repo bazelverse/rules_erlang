@@ -1,5 +1,54 @@
 # Changelog
 
+## 3.19.0
+
+A single fix, for a bug 3.18.0 introduced.
+
+### Fixed
+
+- **`@platforms` no longer has to be visible from the consumer**
+  (`ct.bzl`, `eunit.bzl`, `eunit2.bzl`, `xref.bzl`, `xref2.bzl`, `dialyze.bzl`,
+  `shell.bzl`, new `private/is_windows.bzl`).
+
+  Nine `select()` keys named `@platforms//os:windows` as a bare string. A
+  `select()` key written as a string resolves against the repo mapping of the
+  package that *instantiates* it, and every one of these lives in a macro a
+  consumer calls from its own `BUILD.bazel`. So the key resolved in the
+  consumer's module, and any consumer that had not declared
+  `bazel_dep(name = "platforms")` of its own failed analysis:
+
+  ```
+  ERROR: no such package '@@[unknown repo 'platforms' requested from @@]//os':
+    No repository visible as '@platforms' from main repository
+  ERROR: errors encountered resolving select() keys for //:xref
+  ```
+
+  Calling `xref`, `dialyze`, `eunit`, `ct_suite` or `shell` was enough to trigger
+  it. The keys are now `Label`s, which resolve against this module's repo
+  mapping, and `platforms` is declared here where it belongs.
+
+  This was introduced in 3.18.0 by the migration away from
+  `@bazel_tools//src/conditions:host_windows`. That question could not arise for
+  the old key, because `bazel_tools` is an implicit dependency of every module
+  and is visible everywhere. It survived release because the only consumers on
+  hand both happened to depend on `platforms` already, this repository's own
+  `test` module among them, so nothing in CI could see it. The regression test
+  for it is a consumer that declares nothing but `rules_erlang`.
+
+  The condition now lives in one place. Nine copies of a three-line `select()` is
+  the shape of a fix that lands in some of them and not the rest, which is what
+  happened to the `allow_empty` glob fix in 3.18.0.
+
+### Compatibility
+
+Drop-in for 3.18.0 and 3.16.0. No rule, macro, provider or attribute changed.
+
+A consumer that declared `bazel_dep(name = "platforms")` only to satisfy 3.18.0
+can drop it, though keeping it is harmless. One that uses `@platforms` in its own
+`BUILD` files still needs it, for its own reasons.
+
+Requires Bazel 8 or newer. Tested on Bazel 8.7.0 and 9.2.0.
+
 ## 3.18.0
 
 First release from <https://github.com/bazelverse/rules_erlang>.
