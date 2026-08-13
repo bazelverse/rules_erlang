@@ -1,14 +1,14 @@
 {
-  "homepage": "https://github.com/rabbitmq/rules_erlang",
+  "homepage": "https://github.com/bazelverse/rules_erlang",
   "maintainers": [
     {
-      "email": "kuryloskip@vmware.com",
-      "github": "pjk25",
-      "name": "Rin Kuryloski"
+      "email": "marvin.hansen@gmail.com",
+      "github": "marvin-hansen",
+      "name": "Marvin Hansen"
     }
   ],
   "repository": [
-    "github:rabbitmq/rules_erlang"
+    "github:bazelverse/rules_erlang"
   ],
   "versions": [],
   "yanked_versions": {}
