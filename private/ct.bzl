@@ -40,10 +40,15 @@ def unique_short_dirnames(files):
     return dirs
 
 def code_paths(dep):
-    return [
-        path_join(dep.label.workspace_root, d) if dep.label.workspace_root != "" else d
-        for d in unique_short_dirnames(dep[ErlangAppInfo].beam)
-    ]
+    # short_path is already runfiles-relative for both the main repository
+    # ("pkg/ebin") and an external one ("../repo+/pkg/ebin"), so prepending
+    # workspace_root ("external/repo+") produced
+    # "external/repo+/../repo+/pkg/ebin". That happened to resolve under Bazel 7,
+    # whose runfiles tree contained a real "external" directory for the ".." to
+    # climb out of. Bazel 8 lays repositories out as siblings instead, so there is
+    # no such directory and the path resolves nowhere -- dialyzer and xref then
+    # fail with "No such file, directory or application".
+    return unique_short_dirnames(dep[ErlangAppInfo].beam)
 
 # Calling ctx.expand_location with short_paths=True gives
 # "Error in expand_location: Rule in 'private' cannot use private API"
