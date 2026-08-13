@@ -65,6 +65,11 @@ def _impl(ctx):
     include_args = []
     if package_dir != "":
         include_args.extend(["-I", package_dir])
+    # Lets -include_lib("<app>/include/x.hrl") resolve against the staged ERL_LIBS
+    # tree via epp's include-path fallback. Needed when <app> is the app currently
+    # being compiled, since its ebin does not exist yet and code:lib_dir/1 fails.
+    if erl_libs_path != "":
+        include_args.extend(["-I", erl_libs_path])
     for dir in unique_dirnames(ctx.files.hdrs):
         include_args.extend(["-I", dir])
 
