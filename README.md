@@ -17,8 +17,9 @@ covers 7.x, 8.x and 9.x.
 
 This repository continues the 3.x line of
 [rabbitmq/rules_erlang](https://github.com/rabbitmq/rules_erlang), which is
-archived. `3.16.0` was its last release. Its `main` branch stopped at an
-unreleased `4.0.0-beta.1`, kept here on the `archive/4.0.0-beta.1` branch.
+archived. `3.16.0` was its last release; its `main` branch then stopped at an
+unreleased `4.0.0-beta.1`, which never reached the registry and is not continued
+here.
 
 **For a bzlmod consumer, 3.18.0 is a drop-in replacement for 3.16.0.** No rule,
 macro, provider or attribute changed; every commit between the two tags is one

@@ -7,8 +7,9 @@ First release from <https://github.com/bazelverse/rules_erlang>.
 `rabbitmq/rules_erlang` is archived. `3.16.0` was its last release, and its
 `main` branch stopped at an unreleased `4.0.0-beta.1`. This release continues the
 3.x line from the **3.16.0 tag** and carries the fixes that were being maintained
-downstream as a vendored copy. `4.0.0-beta.1` is preserved on the
-`archive/4.0.0-beta.1` branch; it resolves none of the fixes below.
+downstream as a vendored copy. `4.0.0-beta.1` was never released or published to
+the registry, and it resolves none of the fixes below; its commits remain
+available from the archived upstream repository.
 
 Every change is a separate commit, so `git diff 3.16.0..3.18.0` is exactly this
 list and nothing else.
