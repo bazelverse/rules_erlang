@@ -44,6 +44,21 @@ list and nothing else.
   `select()` keys move from `@bazel_tools//src/conditions:host_windows`, which
   Bazel warns about on every use, to the `@platforms//os:windows` constraint.
 
+- **`dialyze` and `xref` under Bazel 8 and newer** (`private/ct.bzl`).
+  `code_paths` prepended the dependency's `workspace_root` to a `short_path`
+  that already encodes the repository, yielding
+  `external/repo+/../repo+/pkg/ebin`. Bazel 7's runfiles tree contained a real
+  `external` directory for the `..` to climb out of, so the redundant path
+  happened to resolve. Bazel 8 lays repositories out as siblings, so it resolves
+  nowhere and both rules fail with "No such file, directory or application".
+  This affected every consumer using rules_erlang as a dependency, which is all
+  of them.
+
+- **Empty globs in `ct_suite` and `eunit`** (`ct.bzl`, `eunit.bzl`). The
+  `allow_empty` fix above was applied to `erlang_app` only; eight globs across
+  these two files still failed on any package lacking `include/`, a data
+  directory, or test sources. Fatal since Bazel 7.
+
 - **`app_file_test` under an external repository**
   (`private/app_file_test.bzl`). The analysis test asserted an exact
   `short_path`, which only holds when rules_erlang is the root module. Consumed
@@ -113,7 +128,8 @@ For a bzlmod consumer, 3.18.0 is a drop-in replacement for 3.16.0: no rule,
 macro, provider or attribute changed. The only removal is the WORKSPACE entry
 point, which no supported Bazel can load anyway.
 
-Tested on Bazel 7.7.1, 8.7.0 and 9.2.0.
+Requires Bazel 8 or newer, declared as `bazel_compatibility`. Tested on
+Bazel 8.7.0 and 9.2.0.
 
 ### Note on where these fixes came from
 

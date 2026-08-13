@@ -11,7 +11,7 @@ they are untested here. Treat them as use-at-your-own-risk.
 
 Requires bzlmod; WORKSPACE support was removed in 3.18.0. GitHub CI builds with
 the Bazel pinned in `.bazelversion`, and the Bazel Central Registry presubmit
-covers 7.x, 8.x and 9.x.
+covers 8.x and 9.x. Bazel 7 is not supported.
 
 ## Status
 
