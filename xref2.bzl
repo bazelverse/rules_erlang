@@ -1,3 +1,4 @@
+load("//private:is_windows.bzl", "IS_WINDOWS")
 load(
     "//private:xref2.bzl",
     "xref_query",
@@ -19,10 +20,7 @@ def xref(
     xref_test(
         name = name,
         target = target,
-        is_windows = select({
-            "@platforms//os:windows": True,
-            "//conditions:default": False,
-        }),
+        is_windows = IS_WINDOWS,
         size = size,
         tags = tags + [XREF_TAG],
         **kwargs
@@ -31,10 +29,7 @@ def xref(
         name = name + "-query",
         testonly = True,
         target = target,
-        is_windows = select({
-            "@platforms//os:windows": True,
-            "//conditions:default": False,
-        }),
+        is_windows = IS_WINDOWS,
         tags = tags,
         **kwargs
     )

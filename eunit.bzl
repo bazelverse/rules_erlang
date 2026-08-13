@@ -1,4 +1,5 @@
 load("//private:eunit.bzl", "eunit_test")
+load("//private:is_windows.bzl", "IS_WINDOWS")
 load(":erlang_app.bzl", "DEFAULT_TEST_ERLC_OPTS")
 load(":erlang_bytecode.bzl", "erlang_bytecode")
 
@@ -36,10 +37,7 @@ def eunit(
     eunit_test(
         name = "eunit",
         coverdata_to_lcov = Label("@rules_erlang//tools/coverdata_to_lcov:coverdata_to_lcov"),
-        is_windows = select({
-            "@platforms//os:windows": True,
-            "//conditions:default": False,
-        }),
+        is_windows = IS_WINDOWS,
         compiled_suites = [":test_case_beam_files"] + additional_beam,
         eunit_mods = eunit_mods,
         data = native.glob(["test/**/*"], exclude = srcs, allow_empty = True) + data,

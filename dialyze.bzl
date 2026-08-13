@@ -2,6 +2,7 @@ load(
     "//private:dialyze.bzl",
     "dialyze_test",
 )
+load("//private:is_windows.bzl", "IS_WINDOWS")
 load(
     "//private:plt.bzl",
     _plt = "plt",
@@ -33,10 +34,7 @@ def dialyze(
     dialyze_test(
         name = name,
         target = target,
-        is_windows = select({
-            "@platforms//os:windows": True,
-            "//conditions:default": False,
-        }),
+        is_windows = IS_WINDOWS,
         tags = tags + [DIALYZE_TAG],
         **kwargs
     )

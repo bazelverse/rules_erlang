@@ -1,3 +1,4 @@
+load("//private:is_windows.bzl", "IS_WINDOWS")
 load("//private:xref.bzl", "xref_test")
 
 XREF_TAG = "xref"
@@ -11,10 +12,7 @@ def xref(
         xrefr = Label("@rules_erlang//tools/xref_runner:xrefr"),
         name = name,
         target = target,
-        is_windows = select({
-            "@platforms//os:windows": True,
-            "//conditions:default": False,
-        }),
+        is_windows = IS_WINDOWS,
         tags = tags + [XREF_TAG],
         **kwargs
     )
