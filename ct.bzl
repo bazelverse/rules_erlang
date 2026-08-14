@@ -1,20 +1,21 @@
 load(
-    "//private:util.bzl",
-    _additional_file_dest_relative_path = "additional_file_dest_relative_path",
-)
-load(
     "//private:ct.bzl",
     _code_paths = "code_paths",
     _ct_test = "ct_test",
     _sanitize_sname = "sanitize_sname",
 )
+load("//private:is_windows.bzl", "IS_WINDOWS")
 load(
-    ":erlang_bytecode.bzl",
-    "erlang_bytecode",
+    "//private:util.bzl",
+    _additional_file_dest_relative_path = "additional_file_dest_relative_path",
 )
 load(
     ":erlang_app.bzl",
     "DEFAULT_TEST_ERLC_OPTS",
+)
+load(
+    ":erlang_bytecode.bzl",
+    "erlang_bytecode",
 )
 
 def additional_file_dest_relative_path(dep_label, f):
@@ -76,10 +77,7 @@ def ct_suite_variant(
         coverdata_to_lcov = Label("@rules_erlang//tools/coverdata_to_lcov:coverdata_to_lcov"),
         name = name,
         suite_name = suite_name,
-        is_windows = select({
-            "@platforms//os:windows": True,
-            "//conditions:default": False,
-        }),
+        is_windows = IS_WINDOWS,
         compiled_suites = [":{}_beam_files".format(suite_name)] + additional_beam,
         data = data_dir_files + data,
         deps = [":test_erlang_app"] + deps + runtime_deps,
@@ -107,10 +105,7 @@ def ct_test(
         deps = deps,
         shard_suite = shard_suite,
         coverdata_to_lcov = coverdata_to_lcov,
-        is_windows = select({
-            "@platforms//os:windows": True,
-            "//conditions:default": False,
-        }),
+        is_windows = IS_WINDOWS,
         **kwargs
     )
 

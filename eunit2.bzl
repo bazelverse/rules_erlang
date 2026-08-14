@@ -1,4 +1,5 @@
 load("//private:eunit.bzl", "eunit_test")
+load("//private:is_windows.bzl", "IS_WINDOWS")
 
 def eunit(
         name = "eunit",
@@ -7,9 +8,6 @@ def eunit(
     eunit_test(
         name = name,
         coverdata_to_lcov = coverdata_to_lcov,
-        is_windows = select({
-            "@platforms//os:windows": True,
-            "//conditions:default": False,
-        }),
+        is_windows = IS_WINDOWS,
         **kwargs
     )

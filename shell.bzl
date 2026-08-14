@@ -1,3 +1,4 @@
+load("//private:is_windows.bzl", "IS_WINDOWS")
 load(
     "//private:shell.bzl",
     _shell = "shell",
@@ -5,9 +6,6 @@ load(
 
 def shell(**kwargs):
     _shell(
-        is_windows = select({
-            "@platforms//os:windows": True,
-            "//conditions:default": False,
-        }),
+        is_windows = IS_WINDOWS,
         **kwargs
     )

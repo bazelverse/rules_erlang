@@ -13,6 +13,10 @@ Requires bzlmod; WORKSPACE support was removed in 3.18.0. GitHub CI builds with
 the Bazel pinned in `.bazelversion`, and the Bazel Central Registry presubmit
 covers 8.x and 9.x. Bazel 7 is not supported.
 
+Nothing else is required of a consumer. In particular you do not need to declare
+`bazel_dep(name = "platforms")` to use the test macros; 3.18.0 did, which
+[3.19.0 fixes](./CHANGELOG.md).
+
 ## Status
 
 This repository continues the 3.x line of
@@ -21,54 +25,34 @@ archived. `3.16.0` was its last release; its `main` branch then stopped at an
 unreleased `4.0.0-beta.1`, which never reached the registry and is not continued
 here.
 
-**For a bzlmod consumer, 3.18.0 is a drop-in replacement for 3.16.0.** No rule,
-macro, provider or attribute changed; every commit between the two tags is one
+**For a bzlmod consumer, 3.19.0 is a drop-in replacement for 3.16.0.** No rule,
+macro, provider or attribute changed; every commit between the tags is one
 documented fix. The one removal is the WORKSPACE entry point, which no supported
 Bazel can load anyway. See [CHANGELOG.md](./CHANGELOG.md).
 
 ## Installation
 
-> **Git pre-release only.** Pick one of the two override methods below. Once the
-> Bazel Central Registry entry lands, delete the override and keep the
-> `bazel_dep`; nothing else changes.
-
-### Pinned to a release tag
-
-```starlark
-bazel_dep(name = "rules_erlang", version = "3.18.0")
-
-archive_override(
-    module_name = "rules_erlang",
-    urls = ["https://github.com/bazelverse/rules_erlang/archive/refs/tags/3.18.0.tar.gz"],
-    strip_prefix = "rules_erlang-3.18.0",
-    integrity = "sha256-...",
-)
-```
-
-To get the `integrity` value, run the build once with the attribute omitted.
-Bazel fetches the archive and prints a warning containing the hash it computed;
-paste that in. A *wrong* value fails the build and names the expected one, so
-either route gets you there. Do not leave it out permanently: without it the
-archive is re-fetched unverified.
-
-### Pinned to a commit
+> **Git pre-release only.** The Bazel Central Registry entry is pending an
+> ownership transfer, so `bazel_dep` alone will not resolve and you need an
+> override. Once the entry lands, delete the override and keep the `bazel_dep`;
+> nothing else changes.
 
 ```starlark
-bazel_dep(name = "rules_erlang", version = "3.18.0")
+bazel_dep(name = "rules_erlang", version = "3.19.0")
 
 git_override(
     module_name = "rules_erlang",
     remote = "https://github.com/bazelverse/rules_erlang.git",
-    commit = "0000000000000000000000000000000000000000",
+    commit = "0000000000000000000000000000000000000000",  # 3.19.0
 )
 ```
 
-`commit` takes a full SHA. Use this to track work that has no tag yet. Prefer
-the tag form for anything you ship: it is a fixed archive plus a checksum,
-rather than a repository that has to stay reachable and re-clone.
+`commit` takes a full SHA, not a tag. Pin the commit a release tag points at
+rather than the tag itself: a SHA cannot be moved, and it is the same thing the
+registry will hand you later. `git rev-list -n1 3.19.0` prints it.
 
-The `version` in `bazel_dep` is still required either way. It is what the module
-reports to the rest of the graph; the override decides what is actually fetched.
+The `version` in `bazel_dep` is still required. It is what the module reports to
+the rest of the graph; the override decides what is actually fetched.
 
 **Overrides only take effect in the root module.** If you depend on
 `rules_erlang` indirectly, through

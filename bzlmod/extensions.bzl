@@ -1,7 +1,18 @@
 load(
-    ":hex_pm.bzl",
-    "hex_package_info",
-    "satisfies",
+    "//private:xref_runner_sources.bzl",
+    "xref_runner_sources",
+)
+load(
+    "//repositories:erlang_config.bzl",
+    "INSTALLATION_TYPE_EXTERNAL",
+    "INSTALLATION_TYPE_INTERNAL",
+    "INSTALLATION_TYPE_PREBUILT",
+    _erlang_config_rule = "erlang_config",
+)
+load(
+    "//tools:erlang.bzl",
+    "DEFAULT_ERLANG_SHA256",
+    "DEFAULT_ERLANG_VERSION",
 )
 load(
     ":erlang_package.bzl",
@@ -12,25 +23,15 @@ load(
     "without_requirement",
 )
 load(
+    ":hex_pm.bzl",
+    "hex_package_info",
+    "satisfies",
+)
+load(
     ":semver.bzl",
     "compatible",
     "lt",
     "version_from_string",
-)
-load(
-    "//private:xref_runner_sources.bzl",
-    "xref_runner_sources",
-)
-load(
-    "//repositories:erlang_config.bzl",
-    "INSTALLATION_TYPE_EXTERNAL",
-    "INSTALLATION_TYPE_INTERNAL",
-    _erlang_config_rule = "erlang_config",
-)
-load(
-    "//tools:erlang.bzl",
-    "DEFAULT_ERLANG_SHA256",
-    "DEFAULT_ERLANG_VERSION",
 )
 
 def _erlang_config(ctx):
@@ -44,6 +45,7 @@ def _erlang_config(ctx):
     extra_configure_optss = {}
     post_configure_cmdss = {}
     extra_make_optss = {}
+    extra_exec_constraintss = {}
     owners_by_name = {}
 
     for mod in ctx.modules:
@@ -105,6 +107,46 @@ def _erlang_config(ctx):
             extra_make_optss[erlang.name] = erlang.extra_make_opts
             owners_by_name[erlang.name] = mod
 
+        for erlang in mod.tags.prebuilt_erlang_from_http_archive:
+            if erlang.name in types:
+                fail("{} declares an erlang installation named {}, but the name is already used by {}".format(
+                    mod.name,
+                    erlang.name,
+                    owners_by_name[erlang.name].name,
+                ))
+            types[erlang.name] = INSTALLATION_TYPE_PREBUILT
+            versions[erlang.name] = erlang.version
+            urls[erlang.name] = erlang.url
+            strip_prefixs[erlang.name] = erlang.strip_prefix
+            sha256s[erlang.name] = erlang.sha256
+            extra_exec_constraintss[erlang.name] = erlang.exec_compatible_with
+            owners_by_name[erlang.name] = mod
+
+        for erlang in mod.tags.prebuilt_erlang_from_hex_builds:
+            if erlang.name in types:
+                fail("{} declares an erlang installation named {}, but the name is already used by {}".format(
+                    mod.name,
+                    erlang.name,
+                    owners_by_name[erlang.name].name,
+                ))
+
+            # builds.hex.pm publishes an OTP binary release per (arch, os) with the sha256 of
+            # each archive listed alongside it in builds.txt, so a consumer pins the checksum
+            # upstream already publishes rather than mirroring the archive to compute one.
+            url = "https://builds.hex.pm/builds/otp/{arch}/{os}/OTP-{v}.tar.gz".format(
+                arch = erlang.arch,
+                os = erlang.os,
+                v = erlang.version,
+            )
+
+            types[erlang.name] = INSTALLATION_TYPE_PREBUILT
+            versions[erlang.name] = erlang.version
+            urls[erlang.name] = url
+            strip_prefixs[erlang.name] = "OTP-{}".format(erlang.version)
+            sha256s[erlang.name] = erlang.sha256
+            extra_exec_constraintss[erlang.name] = erlang.exec_compatible_with
+            owners_by_name[erlang.name] = mod
+
     _erlang_config_rule(
         name = "erlang_config",
         rules_erlang_workspace = "@rules_erlang",
@@ -118,6 +160,7 @@ def _erlang_config(ctx):
         extra_configure_optss = extra_configure_optss,
         post_configure_cmdss = post_configure_cmdss,
         extra_make_optss = extra_make_optss,
+        extra_exec_constraintss = extra_exec_constraintss,
     )
 
 external_erlang_from_path = tag_class(attrs = {
@@ -152,12 +195,44 @@ internal_erlang_from_github_release = tag_class(attrs = {
     "extra_make_opts": attr.string_list(),
 })
 
+# Any OTP *binary release* -- an archive with an `Install` script at its root, as opposed to
+# an otp_src source tarball. `exec_compatible_with` lets a repository register one prebuilt per
+# execution architecture and let toolchain resolution choose between them.
+prebuilt_erlang_from_http_archive = tag_class(attrs = {
+    "name": attr.string(),
+    "version": attr.string(),
+    "url": attr.string(),
+    "strip_prefix": attr.string(),
+    "sha256": attr.string(),
+    "exec_compatible_with": attr.string_list(),
+})
+
+# Convenience wrapper over builds.hex.pm, which publishes an OTP binary release per
+# (arch, os) together with its sha256 in builds.txt -- so `sha256` here is a value copied
+# from upstream rather than one computed by mirroring the archive.
+prebuilt_erlang_from_hex_builds = tag_class(attrs = {
+    "name": attr.string(),
+    "version": attr.string(),
+    "arch": attr.string(
+        default = "amd64",
+        doc = "Architecture segment as published by builds.hex.pm, e.g. amd64 or arm64.",
+    ),
+    "os": attr.string(
+        default = "ubuntu-24.04",
+        doc = "OS segment as published by builds.hex.pm. Must match the runtime's libc.",
+    ),
+    "sha256": attr.string(),
+    "exec_compatible_with": attr.string_list(),
+})
+
 erlang_config = module_extension(
     implementation = _erlang_config,
     tag_classes = {
         "external_erlang_from_path": external_erlang_from_path,
         "internal_erlang_from_http_archive": internal_erlang_from_http_archive,
         "internal_erlang_from_github_release": internal_erlang_from_github_release,
+        "prebuilt_erlang_from_http_archive": prebuilt_erlang_from_http_archive,
+        "prebuilt_erlang_from_hex_builds": prebuilt_erlang_from_hex_builds,
     },
 )
 

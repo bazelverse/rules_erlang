@@ -12,6 +12,12 @@ _ERLANG_VERSION_UNKNOWN = "UNKNOWN"
 INSTALLATION_TYPE_EXTERNAL = "external"
 INSTALLATION_TYPE_INTERNAL = "internal"
 
+# An OTP binary release fetched and staged by the build rather than compiled from source.
+# Hermetic in the same sense as "internal" -- not discovered on the host -- but with no
+# configure/make step, which is the entire point: it removes a multi-minute action from
+# every cold build.
+INSTALLATION_TYPE_PREBUILT = "prebuilt"
+
 def _parse_maybe_semver(version_string):
     parts = version_string.split(".", 2)
     if len(parts) > 1:
@@ -46,6 +52,7 @@ def _impl(repository_ctx):
             extra_configure_opts = repository_ctx.attr.extra_configure_optss.get(name, []),
             post_configure_cmds = repository_ctx.attr.post_configure_cmdss.get(name, []),
             extra_make_opts = repository_ctx.attr.extra_make_optss.get(name, []),
+            extra_exec_constraints = repository_ctx.attr.extra_exec_constraintss.get(name, []),
         )
 
     # If we intentionally skipped probing a host-installed OTP, still provide
@@ -65,6 +72,29 @@ def _impl(repository_ctx):
                     "%{ERLANG_MAJOR}": props.major,
                     "%{ERLANG_MINOR}": props.minor,
                     "%{RULES_ERLANG_WORKSPACE}": rules_erlang_workspace,
+                },
+                False,
+            )
+        elif props.type == INSTALLATION_TYPE_PREBUILT:
+            extra = getattr(props, "extra_exec_constraints", [])
+            repository_ctx.template(
+                "{}/BUILD.bazel".format(name),
+                Label("//repositories:BUILD_prebuilt.tpl"),
+                {
+                    "%{ERLANG_NAME}": name,
+                    "%{ERLANG_VERSION}": props.version,
+                    "%{URL}": props.url,
+                    "%{STRIP_PREFIX}": props.strip_prefix or "",
+                    "%{SHA_256}": props.sha256 or "",
+                    "%{ERLANG_MAJOR}": props.major,
+                    "%{ERLANG_MINOR}": props.minor,
+                    "%{RULES_ERLANG_WORKSPACE}": rules_erlang_workspace,
+                    # Added to exec_compatible_with so a repository can register one prebuilt
+                    # per execution architecture and let toolchain resolution pick between them.
+                    "%{EXTRA_EXEC_CONSTRAINTS}": "".join([
+                        '        "%s",\n' % c
+                        for c in extra
+                    ]),
                 },
                 False,
             )
@@ -131,6 +161,7 @@ erlang_config = repository_rule(
         "extra_configure_optss": attr.string_list_dict(),
         "post_configure_cmdss": attr.string_list_dict(),
         "extra_make_optss": attr.string_list_dict(),
+        "extra_exec_constraintss": attr.string_list_dict(),
     },
     environ = [
         ERLANG_HOME_ENV_VAR,
