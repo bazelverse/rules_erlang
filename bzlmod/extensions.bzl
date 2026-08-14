@@ -69,6 +69,7 @@ def _erlang_config(ctx):
                     owners_by_name[erlang.name].name,
                 ))
             types[erlang.name] = INSTALLATION_TYPE_INTERNAL
+            extra_exec_constraintss[erlang.name] = erlang.exec_compatible_with
             versions[erlang.name] = erlang.version
             urls[erlang.name] = erlang.url
             strip_prefixs[erlang.name] = erlang.strip_prefix
@@ -97,6 +98,7 @@ def _erlang_config(ctx):
                 sha256 = erlang.sha256
 
             types[erlang.name] = INSTALLATION_TYPE_INTERNAL
+            extra_exec_constraintss[erlang.name] = erlang.exec_compatible_with
             versions[erlang.name] = erlang.version
             urls[erlang.name] = url
             strip_prefixs[erlang.name] = strip_prefix
@@ -171,6 +173,10 @@ external_erlang_from_path = tag_class(attrs = {
 
 internal_erlang_from_http_archive = tag_class(attrs = {
     "name": attr.string(),
+    "exec_compatible_with": attr.string_list(
+        doc = "Extra exec constraints, so a repository can register one installation per " +
+              "execution platform and let toolchain resolution choose between them.",
+    ),
     "version": attr.string(),
     "url": attr.string(),
     "strip_prefix": attr.string(),
@@ -184,6 +190,10 @@ internal_erlang_from_http_archive = tag_class(attrs = {
 internal_erlang_from_github_release = tag_class(attrs = {
     "name": attr.string(
         default = "internal",
+    ),
+    "exec_compatible_with": attr.string_list(
+        doc = "Extra exec constraints, so a repository can register one installation per " +
+              "execution platform and let toolchain resolution choose between them.",
     ),
     "version": attr.string(
         default = DEFAULT_ERLANG_VERSION,

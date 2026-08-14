@@ -99,6 +99,7 @@ def _impl(repository_ctx):
                 False,
             )
         else:
+            extra = getattr(props, "extra_exec_constraints", [])
             repository_ctx.template(
                 "{}/BUILD.bazel".format(name),
                 Label("//repositories:BUILD_internal.tpl"),
@@ -111,6 +112,14 @@ def _impl(repository_ctx):
                     "%{ERLANG_MAJOR}": props.major,
                     "%{ERLANG_MINOR}": props.minor,
                     "%{RULES_ERLANG_WORKSPACE}": rules_erlang_workspace,
+                    # Same purpose as on the prebuilt path above. Building from source is the
+                    # only option on a platform builds.hex.pm publishes no binary for -- macOS
+                    # being the case in hand -- so an installation registered per execution
+                    # platform has to be expressible for internal installations too.
+                    "%{EXTRA_EXEC_CONSTRAINTS}": "".join([
+                        '        "%s",\n' % c
+                        for c in extra
+                    ]),
                     "%{PRE_CONFIGURE_CMDS}": _to_string_list(props.pre_configure_cmds),
                     "%{EXTRA_CONFIGURE_OPTS}": _to_string_list(props.extra_configure_opts),
                     "%{POST_CONFIGURE_CMDS}": _to_string_list(props.post_configure_cmds),

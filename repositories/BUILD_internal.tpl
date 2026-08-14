@@ -31,7 +31,7 @@ toolchain(
     name = "toolchain_major",
     exec_compatible_with = [
         "//:erlang_internal",
-    ],
+%{EXTRA_EXEC_CONSTRAINTS}    ],
     target_compatible_with = [
         "//:erlang_%{ERLANG_MAJOR}",
     ],
@@ -50,7 +50,7 @@ toolchain(
     name = "toolchain_major_minor",
     exec_compatible_with = [
         "//:erlang_internal",
-    ],
+%{EXTRA_EXEC_CONSTRAINTS}    ],
     target_compatible_with = [
         "//:erlang_%{ERLANG_MAJOR}_%{ERLANG_MINOR}",
     ],
