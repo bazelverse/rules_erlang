@@ -1,11 +1,11 @@
 load(
+    "@bazel_skylib//rules:common_settings.bzl",
+    "BuildSettingInfo",
+)
+load(
     "@bazel_tools//tools/build_defs/hash:hash.bzl",
     "sha256",
     "tools",
-)
-load(
-    "@bazel_skylib//rules:common_settings.bzl",
-    "BuildSettingInfo",
 )
 load(
     "//:util.bzl",
@@ -227,6 +227,163 @@ erlang_build = rule(
         "extra_configure_opts": attr.string_list(),
         "post_configure_cmds": attr.string_list(),
         "extra_make_opts": attr.string_list(),
+        "sha256": tools["sha256"],
+    },
+)
+
+def _erlang_prebuilt_impl(ctx):
+    """Stage an already-compiled OTP release instead of building one.
+
+    Same output contract as erlang_build -- a release_dir_tar that unpacks into install_path,
+    and a version_file -- so the toolchain cannot tell the two apart. What differs is that no
+    configure/make runs: the archive is an OTP *binary release*, which ships an `Install`
+    script exactly because such a release has to be re-pointed at wherever it ends up.
+
+    OTP installations are not relocatable; ROOTDIR is baked into the generated start scripts.
+    `Install -cross <TARGET>` is the supported way out: it treats the current directory as the
+    staging location and writes TARGET into the scripts, which is precisely the split this rule
+    needs, since staging happens in a sandbox and the install path is fixed and absolute.
+    """
+    (_, _, filename) = ctx.attr.url.rpartition("/")
+    downloaded_archive = ctx.actions.declare_file(filename)
+    release_dir_tar = ctx.actions.declare_file(ctx.label.name + "_release.tar")
+    version_file = ctx.actions.declare_file(ctx.label.name + "_version")
+
+    if not ctx.attr.install_prefix.startswith("/"):
+        # As with erlang_build: not relocatable, so this has to be absolute.
+        fail("install_prefix must be absolute")
+    install_path = path_join(ctx.attr.install_prefix, ctx.label.name)
+    erlang_home = path_join(install_path, "lib", "erlang")
+
+    ctx.actions.run_shell(
+        inputs = [],
+        outputs = [downloaded_archive],
+        command = """set -euo pipefail
+
+curl -L "{archive_url}" -o {archive_path}
+""".format(
+            archive_url = ctx.attr.url,
+            archive_path = downloaded_archive.path,
+        ),
+        mnemonic = "OTP",
+        progress_message = "Downloading {}".format(ctx.attr.url),
+    )
+
+    sha256file = sha256(ctx, downloaded_archive)
+
+    # Same reasoning as erlang_build: --strip-components rather than --transform, because
+    # macOS ships bsdtar. A binary release wraps everything in one top-level directory.
+    strip_components = "--strip-components=1" if ctx.attr.strip_prefix != "" else ""
+
+    ctx.actions.run_shell(
+        inputs = [downloaded_archive, sha256file],
+        outputs = [release_dir_tar],
+        command = """set -euo pipefail
+
+if [ -n "{sha256}" ]; then
+    if [ "{sha256}" != "$(cat "{sha256file}")" ]; then
+        echo "ERROR: Checksum mismatch. $(basename "{archive_path}") $(cat "{sha256file}") != {sha256}"
+        exit 1
+    fi
+fi
+
+ABS_RELEASE_DIR_TAR=$PWD/{release_path}
+ABS_STAGE_DIR="$(mktemp -d)"
+
+# The tar is laid out so that unpacking it into install_path yields install_path/lib/erlang,
+# which is what erlang_home points at -- matching what erlang_build produces via `make install`.
+mkdir -p "$ABS_STAGE_DIR/lib/erlang"
+tar --extract \\
+    {strip_components} \\
+    --file "{archive_path}" \\
+    --directory "$ABS_STAGE_DIR/lib/erlang"
+
+cd "$ABS_STAGE_DIR/lib/erlang"
+
+if [ ! -x ./Install ]; then
+    echo "ERROR: $(pwd) has no executable Install script."
+    echo "       erlang_prebuilt expects an OTP binary release (the layout published at"
+    echo "       builds.hex.pm), not an otp_src source tarball -- use erlang_build for source."
+    exit 1
+fi
+
+# -cross: bake {erlang_home} into the start scripts while operating on this staged copy.
+./Install -cross -minimal "{erlang_home}"
+
+cd "$ABS_STAGE_DIR"
+tar --create \\
+    --file "$ABS_RELEASE_DIR_TAR" \\
+    *
+""".format(
+            sha256 = ctx.attr.sha256v,
+            sha256file = sha256file.path,
+            archive_path = downloaded_archive.path,
+            strip_components = strip_components,
+            release_path = release_dir_tar.path,
+            erlang_home = erlang_home,
+        ),
+        use_default_shell_env = True,
+        mnemonic = "OTP",
+        progress_message = "Staging prebuilt otp {}".format(ctx.attr.version),
+    )
+
+    # Identical validation to erlang_build: unpack where it will actually live and ask the
+    # runtime its own version, rather than trusting the version attribute.
+    ctx.actions.run_shell(
+        inputs = [release_dir_tar],
+        outputs = [version_file],
+        command = """set -euo pipefail
+
+mkdir -p "{install_path}"
+tar --extract \\
+    --directory "{install_path}" \\
+    --file {erlang_release_tar}
+
+{begins_with_fun}
+V=$("{erlang_home}"/bin/{query_erlang_version})
+if ! beginswith "{erlang_version}" "$V"; then
+echo "Erlang version mismatch (Expected {erlang_version}, found $V)"
+exit 1
+fi
+
+echo "$V" >> {version_file}
+""".format(
+            install_path = install_path,
+            begins_with_fun = BEGINS_WITH_FUN,
+            query_erlang_version = QUERY_ERL_VERSION,
+            erlang_version = ctx.attr.version,
+            erlang_home = erlang_home,
+            erlang_release_tar = release_dir_tar.path,
+            version_file = version_file.path,
+        ),
+        mnemonic = "OTP",
+        progress_message = "Validating prebuilt otp at {}".format(erlang_home),
+    )
+
+    return [
+        DefaultInfo(
+            files = depset([
+                release_dir_tar,
+                version_file,
+            ]),
+        ),
+        OtpInfo(
+            version = ctx.attr.version,
+            release_dir_tar = release_dir_tar,
+            install_path = install_path,
+            erlang_home = erlang_home,
+            version_file = version_file,
+        ),
+    ]
+
+erlang_prebuilt = rule(
+    implementation = _erlang_prebuilt_impl,
+    attrs = {
+        "version": attr.string(mandatory = True),
+        "url": attr.string(mandatory = True),
+        "strip_prefix": attr.string(),
+        "sha256v": attr.string(),
+        "install_prefix": attr.string(default = DEFAULT_INSTALL_PREFIX),
         "sha256": tools["sha256"],
     },
 )

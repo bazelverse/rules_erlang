@@ -1,5 +1,83 @@
 # Changelog
 
+## 3.20.0
+
+Adds a third way to supply Erlang/OTP: an already-compiled binary release.
+
+### Added
+
+- **`prebuilt_erlang_from_http_archive` and `prebuilt_erlang_from_hex_builds`**
+  (`bzlmod/extensions.bzl`, `repositories/erlang_config.bzl`,
+  new `repositories/BUILD_prebuilt.tpl`, new `erlang_prebuilt` in
+  `private/erlang_build.bzl`).
+
+  Until now there were two ways to provide OTP, and neither covers a downloadable
+  prebuilt:
+
+  - `external_erlang_from_path` takes an absolute `erlang_home` that must already
+    exist on whatever machine runs the action. That is a host dependency, which is
+    exactly what a hermetic build is trying not to have, and it cannot be satisfied
+    on a remote executor without baking OTP into the executor image.
+  - `internal_erlang_from_http_archive` accepts any URL, but always feeds it to
+    `erlang_build`, which runs `./configure && make`. Pointing it at a binary
+    release does not skip the build; it fails, because there is nothing to
+    configure.
+
+  So a consumer who wanted a prebuilt OTP had to compile one anyway. The new tag
+  classes fetch an OTP *binary release* and stage it, with no configure or make
+  step.
+
+  Measured on the same target, same machine, same forced re-execution
+  (`--action_env=CACHEBUST=...` to defeat both caches), OTP 28.1 on linux/amd64:
+
+  | | |
+  |---|---|
+  | `internal_erlang_from_github_release` | still compiling after 5 min, abandoned |
+  | `prebuilt_erlang_from_hex_builds` | ~12s wall, staging action ~3-8s |
+
+  The download is 71 MB for a 171 MB installed tree.
+
+  `prebuilt_erlang_from_hex_builds` is a thin convenience over `builds.hex.pm`,
+  which publishes a release per `(arch, os)` and lists each archive's sha256 in
+  its `builds.txt`. The checksum a consumer pins is therefore one upstream already
+  publishes, rather than one produced by mirroring the archive somewhere to compute
+  it.
+
+  ```python
+  erlang_config_ext.prebuilt_erlang_from_hex_builds(
+      name = "otp_28_1",
+      version = "28.1",
+      arch = "amd64",            # or "arm64"
+      os = "ubuntu-24.04",       # must match the runtime's libc
+      sha256 = "6f7a95250a83f999909cf64dc375fd08809eb057f61b24eecdf2b3b44fe621ab",
+  )
+  ```
+
+  **On relocation.** An OTP installation is not relocatable: `ROOTDIR` is written
+  into the generated start scripts at install time. A binary release ships an
+  `Install` script precisely because of this, and `Install -cross <TARGET>` treats
+  the current directory as the staging location while writing `TARGET` into the
+  scripts. That is the split this rule needs, since staging happens in a sandbox
+  and the install path is fixed and absolute. The rule fails with an explicit
+  message if the archive has no executable `Install` at its root, because the
+  likely mistake is passing an `otp_src` tarball, and the error from doing that
+  otherwise surfaces deep inside the action.
+
+  **On toolchain registration.** A prebuilt installation registers under the
+  existing `:erlang_internal` constraint rather than a new one. It is hermetic in
+  the same sense an internally built one is -- fetched and staged by the build,
+  not discovered on the host -- and reusing the constraint keeps the generated
+  target names identical. Moving a repository between the source and prebuilt
+  paths is therefore a `MODULE.bazel` edit and nothing else: existing
+  `toolchain_resolution_overrides` and `//<name>:toolchain_major` references keep
+  resolving.
+
+  **On multiple architectures.** Both tag classes take `exec_compatible_with`,
+  whose values are appended to the generated toolchain's `exec_compatible_with`.
+  A repository can register one prebuilt per execution architecture and let
+  toolchain resolution choose, which is what makes a prebuilt OTP usable for
+  something other than the machine that happens to be building.
+
 ## 3.19.0
 
 A single fix, for a bug 3.18.0 introduced.
