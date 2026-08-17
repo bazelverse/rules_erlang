@@ -2,7 +2,7 @@ load("//:util.bzl", "path_join")
 load(
     ":erlang_toolchain.bzl",
     "erlang_dirs",
-    "maybe_install_erlang",
+    "erlang_preamble",
 )
 
 DEFAULT_FILENAMES = [
@@ -22,7 +22,7 @@ def _erlang_headers_impl(ctx):
     commands = [
         "set -euo pipefail",
         "",
-        maybe_install_erlang(ctx),
+        erlang_preamble(ctx),
         "",
     ]
 
@@ -31,8 +31,7 @@ def _erlang_headers_impl(ctx):
     outs = []
     for f in ctx.attr.filenames:
         dest = ctx.actions.declare_file(path_join(ctx.label.name, f))
-        commands.append("cp '{erlang_home}'/usr/include/{f} {dest}".format(
-            erlang_home = erlang_home,
+        commands.append('cp "$ABS_ERLANG_HOME"/usr/include/{f} {dest}'.format(
             f = f,
             dest = dest.path,
         ))

@@ -25,7 +25,8 @@ load(
 load(
     "//tools:erlang_toolchain.bzl",
     "erlang_dirs",
-    "maybe_install_erlang",
+    "erlang_preamble",
+    "windows_erlang_home",
 )
 
 def sanitize_sname(s):
@@ -127,7 +128,7 @@ def _impl(ctx):
 #!/usr/bin/env bash
 set -eo pipefail
 
-{maybe_install_erlang}
+{erlang_preamble}
 
 COVER_ARGS=
 if [ -n "${{COVERAGE}}" ]; then
@@ -167,7 +168,7 @@ if [ -n "${{FOCUS+x}}" ]; then
 else
     if [ -n "${{SHARDING+x}}" ]; then
         export SHARD_SUITE_CODE_PATHS="$TEST_SRCDIR/$TEST_WORKSPACE/{dir}"
-        FILTER=$("{erlang_home}"/bin/escript \\
+        FILTER=$("$ABS_ERLANG_HOME"/bin/escript \\
             $TEST_SRCDIR/$TEST_WORKSPACE/{shard_suite} \\
                 -{sharding_method} \\
                 {suite_name} \\
@@ -185,7 +186,7 @@ fi
 mkdir -p "{log_dir}"
 
 set -x
-"{erlang_home}"/bin/ct_run \\
+"$ABS_ERLANG_HOME"/bin/ct_run \\
     -no_auto_compile \\
     -noinput \\
     ${{FILTER}} \\
@@ -195,13 +196,13 @@ set -x
     -sname {sname} ${{COVER_ARGS}} {extra_args}
 set +x
 if [ -n "${{COVERAGE}}" ]; then
-    "{erlang_home}"/bin/escript $TEST_SRCDIR/$TEST_WORKSPACE/{coverdata_to_lcov} \\
+    "$ABS_ERLANG_HOME"/bin/escript $TEST_SRCDIR/$TEST_WORKSPACE/{coverdata_to_lcov} \\
         ${{COVERAGE_OUTPUT_FILE}} \\
         ${{COVERAGE_OUTPUT_FILE}} \\
         > ${{TEST_UNDECLARED_OUTPUTS_DIR}}/coverdata_to_lcov.log
 fi
 """.format(
-            maybe_install_erlang = maybe_install_erlang(ctx, short_path = True),
+            erlang_preamble = erlang_preamble(ctx, short_path = True),
             app_name = app_name,
             apps_ebin_dirs_term = to_erlang_string_list(apps_ebin_dirs),
             erlang_home = erlang_home,
@@ -256,7 +257,7 @@ set SHARD_SUITE_CODE_PATHS=%TEST_SRCDIR%/%TEST_WORKSPACE%/{dir}
 set SHARD_SUITE_CODE_PATHS=%SHARD_SUITE_CODE_PATHS:/=\\%
 set shard_suite_tool_path=%TEST_SRCDIR%/%TEST_WORKSPACE%/{shard_suite}
 set shard_suite_tool_path=%shard_suite_tool_path:/=\\%
-"{erlang_home}"\\bin\\escript %shard_suite_tool_path% ^
+"$ABS_ERLANG_HOME"\\bin\\escript %shard_suite_tool_path% ^
     -{sharding_method} {suite_name} %TEST_SHARD_INDEX% %TEST_TOTAL_SHARDS% ^
     > shard.tmp
 set /p FILTER= < shard.tmp
@@ -286,7 +287,7 @@ exit /b %CT_RUN_ERRORLEVEL%
 :skip_test
 """.format(
             package = package,
-            erlang_home = windows_path(erlang_home),
+            erlang_home = windows_erlang_home(ctx, short_path = True),
             erl_libs_path = erl_libs_path,
             shard_suite = shard_suite_path,
             sharding_method = ctx.attr.sharding_method,

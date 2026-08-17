@@ -13,7 +13,8 @@ load(
 load(
     "//tools:erlang_toolchain.bzl",
     "erlang_dirs",
-    "maybe_install_erlang",
+    "erlang_preamble",
+    "windows_erlang_home",
 )
 
 def _impl(ctx):
@@ -55,19 +56,19 @@ def _impl(ctx):
 #!/usr/bin/env bash
 set -euo pipefail
 
-{maybe_install_erlang}
+{erlang_preamble}
 
 export HOME=${{TEST_TMPDIR}}
 
-"{erlang_home}"/bin/erl \\
+"$ABS_ERLANG_HOME"/bin/erl \\
     -eval '{{ok, [C]}} = file:consult("{config_path}"), io:format("~p~n", [C]), halt().' \\
     -noshell
 
 set -x
-"{erlang_home}"/bin/escript {xrefr} \\
+"$ABS_ERLANG_HOME"/bin/escript {xrefr} \\
     --config {config_path}
 """.format(
-            maybe_install_erlang = maybe_install_erlang(ctx, short_path = True),
+            erlang_preamble = erlang_preamble(ctx, short_path = True),
             erlang_home = erlang_home,
             xrefr = xrefr_path,
             config_path = config_file.short_path,
@@ -79,7 +80,7 @@ echo on
 "{erlang_home}\\bin\\escript" {xrefr} ^
     --config {config_path} || exit /b 1
 """.format(
-            erlang_home = windows_path(erlang_home),
+            erlang_home = windows_erlang_home(ctx, short_path = True),
             xrefr = windows_path(xrefr_path),
             config_path = windows_path(config_file.short_path),
         ).replace("\n", "\r\n")

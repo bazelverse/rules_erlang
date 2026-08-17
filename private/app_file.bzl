@@ -3,7 +3,7 @@ load("//:erlang_app_info.bzl", "ErlangAppInfo")
 load(
     "//tools:erlang_toolchain.bzl",
     "erlang_dirs",
-    "maybe_install_erlang",
+    "erlang_preamble",
 )
 
 def _impl(ctx):
@@ -26,7 +26,7 @@ def _impl(ctx):
     if len(ctx.files.app_src) == 1:
         script = """set -euo pipefail
 
-{maybe_install_erlang}
+{erlang_preamble}
 
 mods=()
 module_paths={modules}
@@ -53,12 +53,12 @@ else
 fi
 set -u
 
-cat << EOF | "{erlang_home}"/bin/escript {app_file_tool} modules {src} > {out}
+cat << EOF | "$ABS_ERLANG_HOME"/bin/escript {app_file_tool} modules {src} > {out}
 $mods_term.
 EOF
 
 """.format(
-            maybe_install_erlang = maybe_install_erlang(ctx),
+            erlang_preamble = erlang_preamble(ctx),
             erlang_home = erlang_home,
             app_file_tool = app_file_tool_path,
             modules = modules,
@@ -97,12 +97,12 @@ EOF
 
         script = """set -euo pipefail
 
-{maybe_install_erlang}
+{erlang_preamble}
 
 echo "{{application,'{name}',[{{registered, []}},{{env, []}}]}}." > {out}
 
 if [ -n '{description}' ]; then
-    cat << 'EOF' | "{erlang_home}"/bin/escript {app_file_tool} description {out} > {out}.tmp && mv {out}.tmp {out}
+    cat << 'EOF' | "$ABS_ERLANG_HOME"/bin/escript {app_file_tool} description {out} > {out}.tmp && mv {out}.tmp {out}
 "{description}".
 EOF
 fi
@@ -125,7 +125,7 @@ else
 fi
 if [ -n "$VSN" ]; then
     echo "\\"$VSN\\"." | \\
-        "{erlang_home}"/bin/escript {app_file_tool} \\
+        "$ABS_ERLANG_HOME"/bin/escript {app_file_tool} \\
         vsn \\
         {out} > {out}.tmp && mv {out}.tmp {out}
 fi
@@ -155,49 +155,49 @@ else
 fi
 set -u
 
-cat << EOF | "{erlang_home}"/bin/escript {app_file_tool} modules {out} > {out}.tmp && mv {out}.tmp {out}
+cat << EOF | "$ABS_ERLANG_HOME"/bin/escript {app_file_tool} modules {out} > {out}.tmp && mv {out}.tmp {out}
 $mods_term.
 EOF
 
 if [ -n '{registered}' ]; then
-    cat << 'EOF' | "{erlang_home}"/bin/escript {app_file_tool} registered {out} > {out}.tmp && mv {out}.tmp {out}
+    cat << 'EOF' | "$ABS_ERLANG_HOME"/bin/escript {app_file_tool} registered {out} > {out}.tmp && mv {out}.tmp {out}
 {registered}.
 EOF
 fi
 
 if [ -n '{applications}' ]; then
-    cat << 'EOF' | "{erlang_home}"/bin/escript {app_file_tool} applications {out} > {out}.tmp && mv {out}.tmp {out}
+    cat << 'EOF' | "$ABS_ERLANG_HOME"/bin/escript {app_file_tool} applications {out} > {out}.tmp && mv {out}.tmp {out}
 {applications}.
 EOF
 fi
 
 if [ -n '{optional_applications}' ]; then
-    cat << 'EOF' | "{erlang_home}"/bin/escript {app_file_tool} optional_applications {out} > {out}.tmp && mv {out}.tmp {out}
+    cat << 'EOF' | "$ABS_ERLANG_HOME"/bin/escript {app_file_tool} optional_applications {out} > {out}.tmp && mv {out}.tmp {out}
 {optional_applications}.
 EOF
 fi
 
 if [ -n '{app_module}' ]; then
-    cat << 'EOF' | "{erlang_home}"/bin/escript {app_file_tool} mod {out} > {out}.tmp && mv {out}.tmp {out}
+    cat << 'EOF' | "$ABS_ERLANG_HOME"/bin/escript {app_file_tool} mod {out} > {out}.tmp && mv {out}.tmp {out}
 {{{app_module}, []}}.
 EOF
 fi
 
 if [ -n '{env}' ]; then
-    cat << 'EOF' | "{erlang_home}"/bin/escript {app_file_tool} env {out} > {out}.tmp && mv {out}.tmp {out}
+    cat << 'EOF' | "$ABS_ERLANG_HOME"/bin/escript {app_file_tool} env {out} > {out}.tmp && mv {out}.tmp {out}
 {env}.
 EOF
 fi
 
 if [ -n '{extra_keys}' ]; then
-    cat << 'EOF' | "{erlang_home}"/bin/escript {app_file_tool} {out} > {out}.tmp && mv {out}.tmp {out}
+    cat << 'EOF' | "$ABS_ERLANG_HOME"/bin/escript {app_file_tool} {out} > {out}.tmp && mv {out}.tmp {out}
 [
 {extra_keys}
 ].
 EOF
 fi
 """.format(
-            maybe_install_erlang = maybe_install_erlang(ctx),
+            erlang_preamble = erlang_preamble(ctx),
             erlang_home = erlang_home,
             app_file_tool = app_file_tool_path,
             info_file = ctx.info_file.path,

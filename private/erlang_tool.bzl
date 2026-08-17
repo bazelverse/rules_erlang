@@ -1,7 +1,7 @@
 load(
     "//tools:erlang_toolchain.bzl",
     "erlang_dirs",
-    "maybe_install_erlang",
+    "erlang_preamble",
 )
 
 DEFAULT_PATH = "bin/erl"
@@ -15,11 +15,11 @@ def _impl(ctx):
         output = out,
         content = """set -euo pipefail
 
-{maybe_install_erlang}
+{erlang_preamble}
 
-exec "{erlang_home}"/{path} $@
+exec "$ABS_ERLANG_HOME"/{path} $@
 """.format(
-            maybe_install_erlang = maybe_install_erlang(ctx, short_path = True),
+            erlang_preamble = erlang_preamble(ctx, short_path = True),
             erlang_home = erlang_home,
             path = ctx.attr.path,
         ),

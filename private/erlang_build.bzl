@@ -15,28 +15,27 @@ load(
 )
 
 OtpInfo = provider(
-    doc = "A Home directory of a built Erlang/OTP",
+    doc = "A staged Erlang/OTP installation",
     fields = {
         "version": """The version that this build contains.
 May be a prefix of the exact version found in the version_file.""",
-        "release_dir_tar": """Directory containing a built erlang.
-If this value is not None, it must be symlinked into
-erlang_home and used from there, as erlang installations
-are not relocatable.""",
-        "install_path": """Directory to unpack the release_dir_tar into""",
-        "erlang_home": """Absolute path to the erlang
-installation""",
+        "release_dir": """Directory artifact holding the OTP installation,
+None when OTP comes from the host.""",
+        "erlang_home": """`<release_dir>/lib/erlang`, relative to the execroot;
+absolute for a host installation. Read it through `erlang_dirs()`.""",
         "version_file": """A file containing the version of this
 erlang, used to correctly invalidate the cache when an
 external erlang is used""",
     },
 )
 
-DEFAULT_INSTALL_PREFIX = "/tmp/bazel/erlang"
-
-def _install_root(install_prefix):
-    (root_dir, _, _) = install_prefix.removeprefix("/").partition("/")
-    return "/" + root_dir
+# configure --prefix. Not where OTP ends up: the tree is staged into a declared directory and
+# run from there. Every launcher resolves its own root via `dyn_erl --realpath` and prefers it
+# over this recorded value, so the tree runs wherever Bazel puts it.
+#
+# Chosen to not exist, so anything that regresses to relying on the recorded path fails loudly
+# instead of reading some other OTP on the machine.
+NOMINAL_INSTALL_PREFIX = "/nonexistent/rules_erlang/otp"
 
 def _erlang_build_impl(ctx):
     (_, _, filename) = ctx.attr.url.rpartition("/")
@@ -53,12 +52,8 @@ def _erlang_build_impl(ctx):
     post_configure_cmds = "\n".join(ctx.attr.post_configure_cmds)
     extra_make_opts = " ".join(ctx.attr.extra_make_opts)
 
-    if not ctx.attr.install_prefix.startswith("/"):
-        # otp installations are not relocatable, so the install_prefix
-        # must be absolute to build a predictable location
-        fail("install_prefix must be absolute")
-    install_path = path_join(ctx.attr.install_prefix, ctx.label.name)
-    install_root = _install_root(ctx.attr.install_prefix)
+    release_dir = ctx.actions.declare_directory(ctx.label.name + "_release")
+    install_path = NOMINAL_INSTALL_PREFIX
 
     # At one point this rule recevied the erlang sources as a
     # label_list attribute, which had been fetched with a repository
@@ -154,7 +149,6 @@ tar --create \\
             build_path = build_dir_tar.path,
             release_path = release_dir_tar.path,
             install_path = install_path,
-            install_root = install_root,
             build_log = build_log.path,
             extra_configure_opts = extra_configure_opts,
             pre_configure_cmds = pre_configure_cmds,
@@ -166,16 +160,16 @@ tar --create \\
         progress_message = "Compiling otp from source",
     )
 
-    erlang_home = path_join(install_path, "lib", "erlang")
+    erlang_home = path_join(release_dir.path, "lib", "erlang")
 
+    # Ask the runtime its own version rather than trusting the version attribute.
     ctx.actions.run_shell(
         inputs = [release_dir_tar],
-        outputs = [version_file],
+        outputs = [release_dir, version_file],
         command = """set -euo pipefail
 
-mkdir -p "{install_path}"
 tar --extract \\
-    --directory "{install_path}" \\
+    --directory {release_dir} \\
     --file {erlang_release_tar}
 
 {begins_with_fun}
@@ -187,7 +181,7 @@ fi
 
 echo "$V" >> {version_file}
 """.format(
-            install_path = install_path,
+            release_dir = release_dir.path,
             begins_with_fun = BEGINS_WITH_FUN,
             query_erlang_version = QUERY_ERL_VERSION,
             erlang_version = ctx.attr.version,
@@ -196,20 +190,19 @@ echo "$V" >> {version_file}
             version_file = version_file.path,
         ),
         mnemonic = "OTP",
-        progress_message = "Validating otp at {}".format(erlang_home),
+        progress_message = "Staging otp {}".format(ctx.attr.version),
     )
 
     return [
         DefaultInfo(
             files = depset([
-                release_dir_tar,
+                release_dir,
                 version_file,
             ]),
         ),
         OtpInfo(
             version = ctx.attr.version,
-            release_dir_tar = release_dir_tar,
-            install_path = install_path,
+            release_dir = release_dir,
             erlang_home = erlang_home,
             version_file = version_file,
         ),
@@ -222,7 +215,6 @@ erlang_build = rule(
         "url": attr.string(mandatory = True),
         "strip_prefix": attr.string(),
         "sha256v": attr.string(),
-        "install_prefix": attr.string(default = DEFAULT_INSTALL_PREFIX),
         "pre_configure_cmds": attr.string_list(),
         "extra_configure_opts": attr.string_list(),
         "post_configure_cmds": attr.string_list(),
@@ -232,28 +224,18 @@ erlang_build = rule(
 )
 
 def _erlang_prebuilt_impl(ctx):
-    """Stage an already-compiled OTP release instead of building one.
+    """Stage an OTP binary release. Same output contract as erlang_build.
 
-    Same output contract as erlang_build -- a release_dir_tar that unpacks into install_path,
-    and a version_file -- so the toolchain cannot tell the two apart. What differs is that no
-    configure/make runs: the archive is an OTP *binary release*, which ships an `Install`
-    script exactly because such a release has to be re-pointed at wherever it ends up.
-
-    OTP installations are not relocatable; ROOTDIR is baked into the generated start scripts.
-    `Install -cross <TARGET>` is the supported way out: it treats the current directory as the
-    staging location and writes TARGET into the scripts, which is precisely the split this rule
-    needs, since staging happens in a sandbox and the install path is fixed and absolute.
+    The archive ships an `Install` script that must be run to populate bin/. It records the
+    root it is given; that path is right on the producing machine and stale on one that pulls
+    the artifact from cache, where dyn_erl takes over -- see NOMINAL_INSTALL_PREFIX.
     """
     (_, _, filename) = ctx.attr.url.rpartition("/")
     downloaded_archive = ctx.actions.declare_file(filename)
-    release_dir_tar = ctx.actions.declare_file(ctx.label.name + "_release.tar")
+    release_dir = ctx.actions.declare_directory(ctx.label.name + "_release")
     version_file = ctx.actions.declare_file(ctx.label.name + "_version")
 
-    if not ctx.attr.install_prefix.startswith("/"):
-        # As with erlang_build: not relocatable, so this has to be absolute.
-        fail("install_prefix must be absolute")
-    install_path = path_join(ctx.attr.install_prefix, ctx.label.name)
-    erlang_home = path_join(install_path, "lib", "erlang")
+    erlang_home = path_join(release_dir.path, "lib", "erlang")
 
     ctx.actions.run_shell(
         inputs = [],
@@ -277,7 +259,7 @@ curl -L "{archive_url}" -o {archive_path}
 
     ctx.actions.run_shell(
         inputs = [downloaded_archive, sha256file],
-        outputs = [release_dir_tar],
+        outputs = [release_dir, version_file],
         command = """set -euo pipefail
 
 if [ -n "{sha256}" ]; then
@@ -287,60 +269,26 @@ if [ -n "{sha256}" ]; then
     fi
 fi
 
-ABS_RELEASE_DIR_TAR=$PWD/{release_path}
-ABS_STAGE_DIR="$(mktemp -d)"
+# Install records the root it is given, so it has to be told an absolute one.
+ABS_ERLANG_HOME="$PWD/{erlang_home}"
 
-# The tar is laid out so that unpacking it into install_path yields install_path/lib/erlang,
-# which is what erlang_home points at -- matching what erlang_build produces via `make install`.
-mkdir -p "$ABS_STAGE_DIR/lib/erlang"
+mkdir -p "$ABS_ERLANG_HOME"
 tar --extract \\
     {strip_components} \\
     --file "{archive_path}" \\
-    --directory "$ABS_STAGE_DIR/lib/erlang"
+    --directory "$ABS_ERLANG_HOME"
 
-cd "$ABS_STAGE_DIR/lib/erlang"
-
-if [ ! -x ./Install ]; then
-    echo "ERROR: $(pwd) has no executable Install script."
+if [ ! -x "$ABS_ERLANG_HOME/Install" ]; then
+    echo "ERROR: $ABS_ERLANG_HOME has no executable Install script."
     echo "       erlang_prebuilt expects an OTP binary release (the layout published at"
     echo "       builds.hex.pm), not an otp_src source tarball -- use erlang_build for source."
     exit 1
 fi
 
-# -cross: bake {erlang_home} into the start scripts while operating on this staged copy.
-./Install -cross -minimal "{erlang_home}"
-
-cd "$ABS_STAGE_DIR"
-tar --create \\
-    --file "$ABS_RELEASE_DIR_TAR" \\
-    *
-""".format(
-            sha256 = ctx.attr.sha256v,
-            sha256file = sha256file.path,
-            archive_path = downloaded_archive.path,
-            strip_components = strip_components,
-            release_path = release_dir_tar.path,
-            erlang_home = erlang_home,
-        ),
-        use_default_shell_env = True,
-        mnemonic = "OTP",
-        progress_message = "Staging prebuilt otp {}".format(ctx.attr.version),
-    )
-
-    # Identical validation to erlang_build: unpack where it will actually live and ask the
-    # runtime its own version, rather than trusting the version attribute.
-    ctx.actions.run_shell(
-        inputs = [release_dir_tar],
-        outputs = [version_file],
-        command = """set -euo pipefail
-
-mkdir -p "{install_path}"
-tar --extract \\
-    --directory "{install_path}" \\
-    --file {erlang_release_tar}
+(cd "$ABS_ERLANG_HOME" && ./Install -minimal "$ABS_ERLANG_HOME")
 
 {begins_with_fun}
-V=$("{erlang_home}"/bin/{query_erlang_version})
+V=$("$ABS_ERLANG_HOME"/bin/{query_erlang_version})
 if ! beginswith "{erlang_version}" "$V"; then
 echo "Erlang version mismatch (Expected {erlang_version}, found $V)"
 exit 1
@@ -348,29 +296,31 @@ fi
 
 echo "$V" >> {version_file}
 """.format(
-            install_path = install_path,
+            sha256 = ctx.attr.sha256v,
+            sha256file = sha256file.path,
+            archive_path = downloaded_archive.path,
+            strip_components = strip_components,
+            erlang_home = erlang_home,
             begins_with_fun = BEGINS_WITH_FUN,
             query_erlang_version = QUERY_ERL_VERSION,
             erlang_version = ctx.attr.version,
-            erlang_home = erlang_home,
-            erlang_release_tar = release_dir_tar.path,
             version_file = version_file.path,
         ),
+        use_default_shell_env = True,
         mnemonic = "OTP",
-        progress_message = "Validating prebuilt otp at {}".format(erlang_home),
+        progress_message = "Staging prebuilt otp {}".format(ctx.attr.version),
     )
 
     return [
         DefaultInfo(
             files = depset([
-                release_dir_tar,
+                release_dir,
                 version_file,
             ]),
         ),
         OtpInfo(
             version = ctx.attr.version,
-            release_dir_tar = release_dir_tar,
-            install_path = install_path,
+            release_dir = release_dir,
             erlang_home = erlang_home,
             version_file = version_file,
         ),
@@ -383,7 +333,6 @@ erlang_prebuilt = rule(
         "url": attr.string(mandatory = True),
         "strip_prefix": attr.string(),
         "sha256v": attr.string(),
-        "install_prefix": attr.string(default = DEFAULT_INSTALL_PREFIX),
         "sha256": tools["sha256"],
     },
 )
@@ -429,8 +378,7 @@ echo "$V" >> {version_file}
         ),
         OtpInfo(
             version = erlang_version,
-            release_dir_tar = None,
-            install_path = None,
+            release_dir = None,
             erlang_home = erlang_home,
             version_file = version_file,
         ),

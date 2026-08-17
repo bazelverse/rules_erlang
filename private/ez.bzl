@@ -2,7 +2,7 @@ load("//:erlang_app_info.bzl", "ErlangAppInfo")
 load(
     "//tools:erlang_toolchain.bzl",
     "erlang_dirs",
-    "maybe_install_erlang",
+    "erlang_preamble",
 )
 load(":util.bzl", "additional_file_dest_relative_path")
 
@@ -71,13 +71,13 @@ def _impl(ctx):
         outputs = [archive, workspace],
         command = """set -euo pipefail
 
-{maybe_install_erlang}
+{erlang_preamble}
 
-VERSION=$({erlang_home}/bin/{extract_version})
+VERSION=$("$ABS_ERLANG_HOME"/bin/{extract_version})
 
 {build_directory_commands}
 
-"{erlang_home}"/bin/erl \\
+"$ABS_ERLANG_HOME"/bin/erl \\
     -noshell \\
     -eval "zip:create(\\"{workspace}/{app_name}-$VERSION.ez\\",
             [\\"{app_name}-$VERSION\\"],
@@ -88,7 +88,7 @@ VERSION=$({erlang_home}/bin/{extract_version})
 
 cp "{workspace}/{app_name}-$VERSION.ez" "{archive}"
 """.format(
-            maybe_install_erlang = maybe_install_erlang(ctx),
+            erlang_preamble = erlang_preamble(ctx),
             erlang_home = erlang_home,
             extract_version = _extract_version(_app_file(lib_info).path),
             build_directory_commands = "\n".join(build_directory_commands),

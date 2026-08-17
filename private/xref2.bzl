@@ -17,7 +17,8 @@ load(
 load(
     "//tools:erlang_toolchain.bzl",
     "erlang_dirs",
-    "maybe_install_erlang",
+    "erlang_preamble",
+    "windows_erlang_home",
 )
 
 def _replace_all(s, substitutions):
@@ -109,7 +110,7 @@ def _impl(ctx):
 #!/usr/bin/env bash
 set -euo pipefail
 
-{maybe_install_erlang}
+{erlang_preamble}
 
 export HOME=${{TEST_TMPDIR}}
 export ERL_LIBS=$TEST_SRCDIR/$TEST_WORKSPACE/{erl_libs_path}
@@ -118,12 +119,12 @@ if [ -n "{package}" ]; then
     cd {package}
 fi
 
-"{erlang_home}"/bin/erl \\
+"$ABS_ERLANG_HOME"/bin/erl \\
     -noshell \\
     -eval "{xref_erl}" \\
     -pa ebin/
 """.format(
-            maybe_install_erlang = maybe_install_erlang(ctx, short_path = True),
+            erlang_preamble = erlang_preamble(ctx, short_path = True),
             erlang_home = erlang_home,
             erl_libs_path = erl_libs_path,
             package = ctx.label.package,
@@ -143,7 +144,7 @@ if NOT [{package}] == [] cd {package}
     -eval "{xref_erl}" ^
     -pa ebin/
 """.format(
-            erlang_home = windows_path(erlang_home),
+            erlang_home = windows_erlang_home(ctx, short_path = True),
             erl_libs_path = erl_libs_path,
             xref_erl = xref_erl,
             package = ctx.label.package,
@@ -212,7 +213,7 @@ def _query_impl(ctx):
 #!/usr/bin/env bash
 set -euo pipefail
 
-{maybe_install_erlang}
+{erlang_preamble}
 
 export ERL_LIBS=$PWD/{erl_libs_path}
 
@@ -222,12 +223,12 @@ fi
 
 export QUERY="$1"
 
-"{erlang_home}"/bin/erl \\
+"$ABS_ERLANG_HOME"/bin/erl \\
     -noshell \\
     -eval "{xref_erl}" \\
     -pa ebin/
 """.format(
-            maybe_install_erlang = maybe_install_erlang(ctx, short_path = True),
+            erlang_preamble = erlang_preamble(ctx, short_path = True),
             erlang_home = erlang_home,
             erl_libs_path = erl_libs_path,
             package = ctx.label.package,
@@ -248,7 +249,7 @@ set QUERY=%1%
     -eval "{xref_erl}" ^
     -pa ebin/
 """.format(
-            erlang_home = windows_path(erlang_home),
+            erlang_home = windows_erlang_home(ctx, short_path = True),
             erl_libs_path = windows_path(erl_libs_path),
             package = ctx.label.package,
             xref_erl = xref_erl,

@@ -4,7 +4,7 @@ load(":util.bzl", "erl_libs_contents")
 load(
     "//tools:erlang_toolchain.bzl",
     "erlang_dirs",
-    "maybe_install_erlang",
+    "erlang_preamble",
 )
 
 def beam_file(ctx, src, dir):
@@ -90,7 +90,7 @@ def _impl(ctx):
 
     script = """set -euo pipefail
 
-{maybe_install_erlang}
+{erlang_preamble}
 
 mkdir -p {dest_dir}
 
@@ -100,28 +100,28 @@ fi
 
 # use the compile_first escript to determine the first pass, if present
 if [ -n "{compile_first}" ]; then
-    FIRST=$("{erlang_home}"/bin/escript {compile_first} $@)
+    FIRST=$("$ABS_ERLANG_HOME"/bin/escript {compile_first} $@)
 else
     FIRST=
 fi
 
 if [ -n "$FIRST" ]; then
-    "{erlang_home}"/bin/erlc \\
+    "$ABS_ERLANG_HOME"/bin/erlc \\
         -v {include_args} {pa_args} \\
         -o {out_dir} {erlc_opts} \\
         $FIRST
-    "{erlang_home}"/bin/erlc \\
+    "$ABS_ERLANG_HOME"/bin/erlc \\
         -v {include_args} {pa_args} -pa {out_dir} \\
         -o {out_dir} {erlc_opts} \\
         $@
 else
-    "{erlang_home}"/bin/erlc \\
+    "$ABS_ERLANG_HOME"/bin/erlc \\
         -v {include_args} {pa_args} \\
         -o {out_dir} {erlc_opts} \\
         $@
 fi
     """.format(
-        maybe_install_erlang = maybe_install_erlang(ctx),
+        erlang_preamble = erlang_preamble(ctx),
         erlang_home = erlang_home,
         dest_dir = dest_dir,
         erl_libs_path = erl_libs_path,

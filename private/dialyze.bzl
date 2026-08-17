@@ -1,7 +1,8 @@
 load(
     "//tools:erlang_toolchain.bzl",
     "erlang_dirs",
-    "maybe_install_erlang",
+    "erlang_preamble",
+    "windows_erlang_home",
 )
 load("//:erlang_app_info.bzl", "ErlangAppInfo")
 load("//:util.bzl", "path_join", "windows_path")
@@ -46,7 +47,7 @@ def _impl(ctx):
 #!/usr/bin/env bash
 set -euo pipefail
 
-{maybe_install_erlang}
+{erlang_preamble}
 
 export HOME=${{TEST_TMPDIR}}
 
@@ -55,11 +56,11 @@ if [ -n "{erl_libs_path}" ]; then
 fi
 
 set -x
-"{erlang_home}"/bin/dialyzer {apps_args} \\
+"$ABS_ERLANG_HOME"/bin/dialyzer {apps_args} \\
     {plt_args} \\
     -r {dirs} {opts}{check_warnings}
 """.format(
-            maybe_install_erlang = maybe_install_erlang(ctx, short_path = True),
+            erlang_preamble = erlang_preamble(ctx, short_path = True),
             erlang_home = erlang_home,
             erl_libs_path = erl_libs_path,
             apps_args = apps_args,
@@ -84,7 +85,7 @@ if %ERRORLEVEL% EQU 0 EXIT /B 0
 {check_warnings}
 EXIT /B 1
 """.format(
-            erlang_home = windows_path(erlang_home),
+            erlang_home = windows_erlang_home(ctx, short_path = True),
             erl_libs_path = erl_libs_path,
             apps_args = apps_args,
             plt_args = plt_args,

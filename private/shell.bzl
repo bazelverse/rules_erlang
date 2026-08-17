@@ -8,7 +8,8 @@ load(":util.bzl", "erl_libs_contents")
 load(
     "//tools:erlang_toolchain.bzl",
     "erlang_dirs",
-    "maybe_install_erlang",
+    "erlang_preamble",
+    "windows_erlang_home",
 )
 
 def _impl(ctx):
@@ -33,14 +34,14 @@ def _impl(ctx):
 #!/usr/bin/env bash
 set -euo pipefail
 
-{maybe_install_erlang}
+{erlang_preamble}
 
 export ERL_LIBS=$PWD/{erl_libs_path}
 
 set -x
-"{erlang_home}"/bin/erl {extra_erl_args} $@
+"$ABS_ERLANG_HOME"/bin/erl {extra_erl_args} $@
 """.format(
-            maybe_install_erlang = maybe_install_erlang(ctx, short_path = True),
+            erlang_preamble = erlang_preamble(ctx, short_path = True),
             erlang_home = erlang_home,
             erl_libs_path = erl_libs_path,
             extra_erl_args = " ".join(ctx.attr.extra_erl_args),
@@ -54,7 +55,7 @@ set ERL_LIBS=%cd%\\{erl_libs_path}
 echo on
 "{erlang_home}\\bin\\erl" {extra_erl_args} %* || exit /b 1
 """.format(
-            erlang_home = windows_path(erlang_home),
+            erlang_home = windows_erlang_home(ctx, short_path = True),
             erl_libs_path = windows_path(erl_libs_path),
             extra_erl_args = " ".join(ctx.attr.extra_erl_args),
         ).replace("\n", "\r\n")

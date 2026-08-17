@@ -16,7 +16,8 @@ load(
 load(
     "//tools:erlang_toolchain.bzl",
     "erlang_dirs",
-    "maybe_install_erlang",
+    "erlang_preamble",
+    "windows_erlang_home",
 )
 
 def short_dirname(f):
@@ -117,7 +118,7 @@ def _impl(ctx):
 #!/usr/bin/env bash
 set -eo pipefail
 
-{maybe_install_erlang}
+{erlang_preamble}
 
 export HOME=${{TEST_TMPDIR}}
 if [ -n "{erl_libs_path}" ]; then
@@ -137,18 +138,18 @@ if [ -n "${{COVERAGE}}" ]; then
     COVER_POST="cover:export(\\"${{COVERAGE_OUTPUT_FILE}}\\"), "
 fi
 set -x
-"{erlang_home}"/bin/erl +A1 -noinput -boot no_dot_erlang \\
+"$ABS_ERLANG_HOME"/bin/erl +A1 -noinput -boot no_dot_erlang \\
     {pa_args} {extra_args} \\
     -eval "${{COVER_PRE}}case eunit:test({eunit_mods_term},{eunit_opts_term}) of ok -> ok; error -> halt(2) end, ${{COVER_POST}}halt()."
 set +x
 if [ -n "${{COVERAGE}}" ]; then
-    "{erlang_home}"/bin/escript $TEST_SRCDIR/$TEST_WORKSPACE/{coverdata_to_lcov} \\
+    "$ABS_ERLANG_HOME"/bin/escript $TEST_SRCDIR/$TEST_WORKSPACE/{coverdata_to_lcov} \\
         ${{COVERAGE_OUTPUT_FILE}} \\
         ${{COVERAGE_OUTPUT_FILE}} \\
         > ${{TEST_UNDECLARED_OUTPUTS_DIR}}/coverdata_to_lcov.log
 fi
 """.format(
-            maybe_install_erlang = maybe_install_erlang(ctx, short_path = True),
+            erlang_preamble = erlang_preamble(ctx, short_path = True),
             erlang_home = erlang_home,
             apps_ebin_dirs_term = _quote(to_erlang_string_list(apps_ebin_dirs)),
             erl_libs_path = erl_libs_path if len(erl_libs_files) > 0 else "",
@@ -183,7 +184,7 @@ echo on
     -eval "case eunit:test({eunit_mods_term},{eunit_opts_term}) of ok -> ok; error -> halt(2) end, halt()" || exit /b 1
 """.format(
             package = package,
-            erlang_home = windows_path(erlang_home),
+            erlang_home = windows_erlang_home(ctx, short_path = True),
             erl_libs_path = erl_libs_path if len(erl_libs_files) > 0 else "",
             pa_args = " ".join(pa_args),
             extra_args = " ".join(ctx.attr.erl_extra_args),

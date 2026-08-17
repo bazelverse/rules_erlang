@@ -5,7 +5,7 @@ load(":util.bzl", "erl_libs_contents")
 load(
     "//tools:erlang_toolchain.bzl",
     "erlang_dirs",
-    "maybe_install_erlang",
+    "erlang_preamble",
 )
 
 ErlcOptsInfo = provider(
@@ -80,18 +80,18 @@ def _impl(ctx):
 
     script = """set -euo pipefail
 
-{maybe_install_erlang}
+{erlang_preamble}
 
 if [ -n "{erl_libs_path}" ]; then
     export ERL_LIBS={erl_libs_path}
 fi
 
-"{erlang_home}"/bin/erlc \\
+"$ABS_ERLANG_HOME"/bin/erlc \\
     -v {include_args} {pa_args} \\
     -o {out_dir} {erlc_opts} \\
     $@
     """.format(
-        maybe_install_erlang = maybe_install_erlang(ctx),
+        erlang_preamble = erlang_preamble(ctx),
         erlang_home = erlang_home,
         erl_libs_path = erl_libs_path,
         include_args = " ".join(include_args),

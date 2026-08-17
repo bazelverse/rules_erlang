@@ -4,7 +4,7 @@ load(":util.bzl", "erl_libs_contents")
 load(
     "//tools:erlang_toolchain.bzl",
     "erlang_dirs",
-    "maybe_install_erlang",
+    "erlang_preamble",
 )
 
 def unique_dirnames(files):
@@ -38,11 +38,11 @@ def _impl(ctx):
 
 mkdir -p {out_dir}
 
-"{erlang_home}"/bin/erlc \\
+"$ABS_ERLANG_HOME"/bin/erlc \\
     -o "{out_dir}" \\
     "$@"
     """.format(
-        maybe_install_erlang = maybe_install_erlang(ctx),
+        erlang_preamble = erlang_preamble(ctx),
         erlang_home = erlang_home,
         out_dir = out_dir,
     )

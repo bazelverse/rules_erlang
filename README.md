@@ -21,9 +21,7 @@ Nothing else is required of a consumer. In particular you do not need to declare
 
 This repository continues the 3.x line of
 [rabbitmq/rules_erlang](https://github.com/rabbitmq/rules_erlang), which is
-archived. `3.16.0` was its last release; its `main` branch then stopped at an
-unreleased `4.0.0-beta.1`, which never reached the registry and is not continued
-here.
+archived. `3.16.0` was its last release;
 
 **For a bzlmod consumer, 3.19.0 is a drop-in replacement for 3.16.0.** No rule,
 macro, provider or attribute changed; every commit between the tags is one
@@ -47,9 +45,7 @@ git_override(
 )
 ```
 
-`commit` takes a full SHA, not a tag. Pin the commit a release tag points at
-rather than the tag itself: a SHA cannot be moved, and it is the same thing the
-registry will hand you later. `git rev-list -n1 3.19.0` prints it.
+`commit`: a commit hash cannot be moved. `git rev-list -n1 3.19.0` prints the hash for a tag.
 
 The `version` in `bazel_dep` is still required. It is what the module reports to
 the rest of the graph; the override decides what is actually fetched.
