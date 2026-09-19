@@ -1,6 +1,6 @@
 module github.com/bazelverse/rules_erlang/test
 
-go 1.24.12
+go 1.25.0
 
 require (
 	github.com/bazelbuild/bazel-gazelle v0.51.3
@@ -22,10 +22,10 @@ require (
 	github.com/bmatcuk/doublestar/v4 v4.9.1 // indirect
 	github.com/go-logr/logr v1.2.3 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
-	golang.org/x/mod v0.25.0 // indirect
-	golang.org/x/net v0.41.0 // indirect
-	golang.org/x/sys v0.33.0 // indirect
-	golang.org/x/text v0.26.0 // indirect
+	golang.org/x/mod v0.35.0 // indirect
+	golang.org/x/net v0.55.0 // indirect
+	golang.org/x/sys v0.45.0 // indirect
+	golang.org/x/text v0.37.0 // indirect
 	golang.org/x/tools/go/vcs v0.1.0-deprecated // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
