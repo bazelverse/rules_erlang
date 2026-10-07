@@ -53,7 +53,7 @@ jobs:
       id: resolve-test-logs-path
     - name: CAPTURE TEST LOGS
       if: always()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: bazel-testlogs-${{matrix.otp}}
         path: ${{ steps.resolve-test-logs-path.outputs.LOGS_PATH }}/*
@@ -79,7 +79,7 @@ jobs:
       id: resolve-test-logs-path
     - name: CAPTURE TEST LOGS
       if: always()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: bazel-testlogs-macos
         path: ${{ steps.resolve-test-logs-path.outputs.LOGS_PATH }}/*
@@ -124,7 +124,7 @@ jobs:
         tar -cf $LOGS_TAR *
     - name: CAPTURE TEST LOGS
       if: always()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: bazel-testlogs-windows-${{matrix.otp}}
         path: test/logs.tar
@@ -163,7 +163,7 @@ jobs:
       id: resolve-test-logs-path
     - name: CAPTURE TEST LOGS
       if: always()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: bazel-testlogs-internal-erlang
         path: ${{ steps.resolve-test-logs-path.outputs.LOGS_PATH }}/*
@@ -196,7 +196,7 @@ jobs:
       id: resolve-test-logs-path
     - name: CAPTURE TEST LOGS
       if: always()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: bazel-testlogs-coverage
         path: ${{ steps.resolve-test-logs-path.outputs.LOGS_PATH }}/*
@@ -265,7 +265,7 @@ jobs:
       id: resolve-test-logs-path
     - name: CAPTURE TEST LOGS
       if: always()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: bazel-testlogs-gazelle
         path: ${{ steps.resolve-test-logs-path.outputs.LOGS_PATH }}/*
