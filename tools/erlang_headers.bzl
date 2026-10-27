@@ -31,7 +31,7 @@ def _erlang_headers_impl(ctx):
     outs = []
     for f in ctx.attr.filenames:
         dest = ctx.actions.declare_file(path_join(ctx.label.name, f))
-        commands.append("cp '{erlang_home}'/usr/include/{f} {dest}".format(
+        commands.append("cp \"{erlang_home}\"/usr/include/{f} {dest}".format(
             erlang_home = erlang_home,
             f = f,
             dest = dest.path,

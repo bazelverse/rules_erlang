@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Stand-in for erl from a relocatable erlang. Writes where it ran from to
+# every file in $OUTS, so tests can check the derived erlang home.
+set -euo pipefail
+for out in ${OUTS:-}; do
+    echo "fake erl at $0" > "$out"
+done

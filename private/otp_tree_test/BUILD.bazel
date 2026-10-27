@@ -1,0 +1,86 @@
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
+load("//:erl_eval.bzl", "erl_eval")
+load("//private:eunit.bzl", "eunit_test")
+load("//tools:erlang_toolchain.bzl", "erlang_toolchain")
+load(
+    ":otp_tree_test.bzl",
+    "fake_release_otp",
+    "fake_tree_otp",
+    "otp_tree_test_suite",
+    "with_fake_tree_toolchain",
+)
+
+# A relocatable erlang whose files are all in this package. Its bin/
+# holds shell stubs that record where they ran from.
+fake_tree_otp(
+    name = "fake_tree_otp",
+    srcs = glob(["fake_otp/**"]),
+    version_file = "fake_otp/OTP_VERSION",
+)
+
+erlang_toolchain(
+    name = "fake_tree_erlang",
+    otp = ":fake_tree_otp",
+)
+
+toolchain(
+    name = "fake_tree_toolchain",
+    toolchain = ":fake_tree_erlang",
+    toolchain_type = "//tools:toolchain_type",
+)
+
+# An erlang that ships as a release tar, without a tree.
+fake_release_otp(
+    name = "fake_release_otp",
+    release_dir_tar = "fake_release.tar",
+    version_file = "fake_otp/OTP_VERSION",
+)
+
+erlang_toolchain(
+    name = "fake_release_erlang",
+    otp = ":fake_release_otp",
+)
+
+toolchain(
+    name = "fake_release_toolchain",
+    toolchain = ":fake_release_erlang",
+    toolchain_type = "//tools:toolchain_type",
+)
+
+erl_eval(
+    name = "where",
+    outs = ["where.txt"],
+    expression = "halt().",
+    tags = ["manual"],
+)
+
+eunit_test(
+    name = "fake_eunit",
+    compiled_suites = ["fake_test.beam"],
+    coverdata_to_lcov = "//tools/coverdata_to_lcov",
+    eunit_mods = ["fake_test"],
+    is_windows = False,
+    tags = ["manual"],
+)
+
+# Runs :where with the tree toolchain, so the stub erl actually runs
+# from the home that maybe_install_erlang derived.
+with_fake_tree_toolchain(
+    name = "where_with_tree",
+    target = ":where",
+    toolchain = ":fake_tree_toolchain",
+)
+
+sh_test(
+    name = "erl_runs_from_tree_test",
+    srcs = ["erl_runs_from_tree_test.sh"],
+    args = ["$(rootpath :where_with_tree)"],
+    data = [":where_with_tree"],
+    target_compatible_with = select({
+        "@platforms//os:osx": [],
+        "@platforms//os:linux": [],
+        "//conditions:default": ["@platforms//:incompatible"],
+    }),
+)
+
+otp_tree_test_suite(name = "otp_tree_test")

@@ -3,11 +3,24 @@ load(
     "OtpInfo",
 )
 
+# The erlang home that rules use when OtpInfo.tree is set. The shell
+# snippet from maybe_install_erlang assigns this variable.
+TREE_ERLANG_HOME = "${RULES_ERLANG_HOME}"
+
+def _tree(info):
+    return getattr(info, "tree", None)
+
+def template_erlang_home(otpinfo):
+    """The erlang home for make variables, which are not run through a shell."""
+    if _tree(otpinfo) != None:
+        return otpinfo.version_file.dirname
+    return otpinfo.erlang_home
+
 def _impl(ctx):
     otpinfo = ctx.attr.otp[OtpInfo]
     vars = {
         "OTP_VERSION": otpinfo.version,
-        "ERLANG_HOME": otpinfo.erlang_home,
+        "ERLANG_HOME": template_erlang_home(otpinfo),
     }
     if otpinfo.release_dir_tar != None:
         vars["ERLANG_RELEASE_TAR_PATH"] = otpinfo.release_dir_tar.path
@@ -40,6 +53,12 @@ def _build_info(ctx):
 
 def erlang_dirs(ctx):
     info = _build_info(ctx)
+    tree = _tree(info)
+    if tree != None:
+        runfiles = ctx.runfiles(
+            transitive_files = depset([info.version_file], transitive = [tree]),
+        )
+        return (TREE_ERLANG_HOME, None, runfiles)
     if info.release_dir_tar != None:
         runfiles = ctx.runfiles([
             info.release_dir_tar,
@@ -53,6 +72,9 @@ def erlang_dirs(ctx):
 
 def maybe_install_erlang(ctx, short_path = False):
     info = _build_info(ctx)
+    if _tree(info) != None:
+        version_file = info.version_file.short_path if short_path else info.version_file.path
+        return 'RULES_ERLANG_HOME="$(cd "$(dirname "{}")" && pwd)"'.format(version_file)
     release_dir_tar = info.release_dir_tar
     if release_dir_tar == None:
         return ""
