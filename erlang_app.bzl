@@ -50,7 +50,9 @@ def _erlang_app(
         deps = [],
         runtime_deps = [],
         stamp = None,
+        target_compatible_with = None,
         testonly = False,
+        tags = None,
         # new attrs for gazelle extension
         beam_files = None,
         hdrs = None,
@@ -114,6 +116,8 @@ def _erlang_app(
             erlc_opts = erlc_opts,
             dest = "ebin" if not test else "test",
             deps = build_deps + deps,
+            target_compatible_with = target_compatible_with,
+            tags = tags,
             testonly = test or testonly,
         )
 
@@ -136,6 +140,8 @@ def _erlang_app(
                 deps = deps + runtime_deps,
                 dest = "ebin",
                 stamp = stamp,
+                target_compatible_with = target_compatible_with,
+                tags = tags,
                 testonly = testonly,
             )
         app = ":app_file"
@@ -150,6 +156,8 @@ def _erlang_app(
                 name = "appup",
                 src = "src/{}.appup".format(app_name),
                 out = "ebin/{}.appup".format(app_name),
+                target_compatible_with = target_compatible_with,
+                tags = tags,
             )
         appup = ":appup"
     else:
@@ -178,6 +186,8 @@ def _erlang_app(
         license_files = license_files,
         srcs = srcs,
         deps = deps + runtime_deps,
+        target_compatible_with = target_compatible_with,
+        tags = tags,
         visibility = ["//visibility:public"],
         testonly = test or testonly,
     )

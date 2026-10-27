@@ -35,6 +35,7 @@ def ct_suite(
         erlc_opts = DEFAULT_TEST_ERLC_OPTS,
         deps = [],
         runtime_deps = [],
+        target_compatible_with = None,
         **kwargs):
     if suite_name == "":
         suite_name = name
@@ -46,6 +47,7 @@ def ct_suite(
         erlc_opts = erlc_opts,
         dest = "test",
         deps = [":test_erlang_app"] + deps,
+        target_compatible_with = target_compatible_with,
         testonly = True,
     )
 
@@ -54,6 +56,7 @@ def ct_suite(
         suite_name = suite_name,
         deps = deps,
         runtime_deps = runtime_deps,
+        target_compatible_with = target_compatible_with,
         **kwargs
     )
 

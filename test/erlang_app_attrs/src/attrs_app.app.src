@@ -1,0 +1,7 @@
+{application, attrs_app, [
+    {description, "Fixture for target_compatible_with and tags forwarding"},
+    {vsn, "1.0.0"},
+    {registered, []},
+    {applications, [kernel, stdlib]},
+    {env, []}
+]}.
