@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Stand-in for escript from a relocatable erlang. Writes where it ran from to
+# every file in $OUTS, so tests can check the derived erlang home.
+set -euo pipefail
+for out in ${OUTS:-}; do
+    echo "fake escript at $0" > "$out"
+done

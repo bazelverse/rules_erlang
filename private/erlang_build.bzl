@@ -29,6 +29,13 @@ installation""",
         "version_file": """A file containing the version of this
 erlang, used to correctly invalidate the cache when an
 external erlang is used""",
+        "tree": """Optional. A depset of every file of a relocatable
+erlang installation whose root directory holds version_file. When set,
+rules put these files in their inputs and runfiles and find the
+installation next to version_file at run time, so erlang_home,
+release_dir_tar and install_path are not used by the rules. Only the
+POSIX shell scripts support it. Providers that do not set this field
+keep the current behaviour.""",
     },
 )
 
