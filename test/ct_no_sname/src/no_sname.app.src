@@ -1,0 +1,7 @@
+{application, no_sname, [
+    {description, "Fixture for ct_suite with auto_sname = False"},
+    {vsn, "1.0.0"},
+    {registered, []},
+    {applications, [kernel, stdlib]},
+    {env, []}
+]}.

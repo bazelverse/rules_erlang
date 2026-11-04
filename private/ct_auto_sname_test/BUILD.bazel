@@ -1,0 +1,40 @@
+load("//private:ct.bzl", "ct_test")
+load(":ct_auto_sname_test.bzl", "ct_auto_sname_test_suite")
+
+# The tests only inspect the generated test scripts; nothing here runs.
+
+[
+    ct_test(
+        name = "{}_{}".format(
+            "auto_sname" if auto_sname else "no_sname",
+            "windows" if is_windows else "posix",
+        ),
+        auto_sname = auto_sname,
+        compiled_suites = ["fake_SUITE.beam"],
+        coverdata_to_lcov = "//tools/coverdata_to_lcov",
+        shard_suite = "//tools/shard_suite",
+        is_windows = is_windows,
+        suite_name = "fake_SUITE",
+        tags = ["manual"],
+    )
+    for auto_sname in [
+        True,
+        False,
+    ]
+    for is_windows in [
+        True,
+        False,
+    ]
+]
+
+ct_test(
+    name = "default_posix",
+    compiled_suites = ["fake_SUITE.beam"],
+    coverdata_to_lcov = "//tools/coverdata_to_lcov",
+    is_windows = False,
+    shard_suite = "//tools/shard_suite",
+    suite_name = "fake_SUITE",
+    tags = ["manual"],
+)
+
+ct_auto_sname_test_suite(name = "ct_auto_sname_test")

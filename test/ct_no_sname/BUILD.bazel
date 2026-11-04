@@ -1,0 +1,23 @@
+load("@rules_erlang//:ct.bzl", "ct_suite")
+load("@rules_erlang//:erlang_app.bzl", "erlang_app", "test_erlang_app")
+
+erlang_app(
+    app_name = "no_sname",
+)
+
+test_erlang_app(
+    app_name = "no_sname",
+)
+
+# auto_sname = False leaves out -hidden -sname <name>, so the suite can
+# start a node that does not register with epmd.
+ct_suite(
+    name = "no_sname_SUITE",
+    auto_sname = False,
+    ct_run_extra_args = [
+        "-sname",
+        "undefined",
+        "-start_epmd",
+        "false",
+    ],
+)

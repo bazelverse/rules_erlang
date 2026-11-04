@@ -190,9 +190,7 @@ set -x
     -noinput \\
     ${{FILTER}} \\
     -dir test {pa_args} \\
-    -logdir "{log_dir}" \\
-    -hidden \\
-    -sname {sname} ${{COVER_ARGS}} {extra_args}
+    -logdir "{log_dir}"{node_args} ${{COVER_ARGS}} {extra_args}
 set +x
 if [ -n "${{COVERAGE}}" ]; then
     "{erlang_home}"/bin/escript $TEST_SRCDIR/$TEST_WORKSPACE/{coverdata_to_lcov} \\
@@ -214,7 +212,7 @@ fi
             pa_args = " ".join(pa_args),
             dir = path_join(package, "test"),
             log_dir = log_dir,
-            sname = sname(ctx),
+            node_args = " \\\n    -hidden \\\n    -sname {}".format(sname(ctx)) if ctx.attr.auto_sname else "",
             extra_args = " ".join(extra_args),
             test_env = "\n".join(test_env_commands),
         )
@@ -277,9 +275,7 @@ echo on
     -noinput ^
     %FILTER% ^
     -dir test {pa_args} ^
-    -logdir {drive_letter}: ^
-    -hidden ^
-    -sname {sname} {extra_args}
+    -logdir {drive_letter}:{node_args} {extra_args}
 set CT_RUN_ERRORLEVEL=%ERRORLEVEL%
 subst {drive_letter}: /d
 exit /b %CT_RUN_ERRORLEVEL%
@@ -295,7 +291,7 @@ exit /b %CT_RUN_ERRORLEVEL%
             dir = path_join(package, "test"),
             log_dir = log_dir,
             drive_letter = ctx.attr._windows_logdir_drive_letter[BuildSettingInfo].value,
-            sname = sname(ctx),
+            node_args = " ^\n    -hidden ^\n    -sname {}".format(sname(ctx)) if ctx.attr.auto_sname else "",
             extra_args = " ".join(extra_args),
             test_env = "\n".join(test_env_commands),
         ).replace("\n", "\r\n")
@@ -346,6 +342,15 @@ ct_test = rule(
         ),
         "ct_hooks": attr.string_list(),
         "ct_run_extra_args": attr.string_list(),
+        "auto_sname": attr.bool(
+            default = True,
+            doc = """Start the test node as a hidden node with a short name
+generated from the label (-hidden -sname <name>). A named node needs
+epmd and a working loopback. Set to False to leave both flags out and
+choose node options in ct_run_extra_args instead. Without a -sname or
+-name there, ct_run falls back to its own default name (ct). To run
+without epmd, pass -sname undefined -start_epmd false.""",
+        ),
         "data": attr.label_list(allow_files = True),
         "deps": attr.label_list(providers = [ErlangAppInfo]),
         "ez_deps": attr.label_list(
