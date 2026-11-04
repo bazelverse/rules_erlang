@@ -1,0 +1,37 @@
+load("@rules_erlang//:ct.bzl", "ct_suite")
+load("@rules_erlang//:erlang_app.bzl", "erlang_app", "test_erlang_app")
+load(":defs.bzl", "assert_forwarded")
+
+# Every target in this package is incompatible, so `bazel build //...`
+# and `bazel test //...` skip them. If erlang_app or ct_suite stops
+# forwarding tags or target_compatible_with, assert_forwarded fails the
+# package at loading time.
+
+TAGS = ["attrs_fixture"]
+
+INCOMPATIBLE = ["@platforms//:incompatible"]
+
+erlang_app(
+    app_name = "attrs_app",
+    tags = TAGS,
+    target_compatible_with = INCOMPATIBLE,
+)
+
+test_erlang_app(
+    app_name = "attrs_app",
+    tags = TAGS,
+    target_compatible_with = INCOMPATIBLE,
+)
+
+ct_suite(
+    name = "attrs_app_SUITE",
+    tags = TAGS,
+    target_compatible_with = INCOMPATIBLE,
+)
+
+assert_forwarded(
+    tag = "attrs_fixture",
+    incompatible = "//:incompatible",
+    # ct_suite passes tags to the test only, not to the suite's bytecode.
+    untagged = ["attrs_app_SUITE_beam_files"],
+)
