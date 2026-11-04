@@ -35,6 +35,7 @@ def _impl(ctx):
 
     script = """set -euo pipefail
 
+{maybe_install_erlang}
 
 mkdir -p {out_dir}
 

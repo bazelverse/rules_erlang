@@ -1,0 +1,32 @@
+load("@rules_erlang//:erlang_xrl_yrl.bzl", "erlang_xrl_yrl")
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
+
+erlang_xrl_yrl(
+    name = "lexer",
+    srcs = ["lexer.xrl"],
+    outs = ["lexer.erl"],
+)
+
+erlang_xrl_yrl(
+    name = "parser",
+    srcs = ["parser.yrl"],
+    outs = ["parser.erl"],
+)
+
+sh_test(
+    name = "xrl_yrl_test",
+    srcs = ["xrl_yrl_test.sh"],
+    args = [
+        "$(location :lexer)",
+        "$(location :parser)",
+    ],
+    data = [
+        ":lexer",
+        ":parser",
+    ],
+    target_compatible_with = select({
+        "@platforms//os:osx": [],
+        "@platforms//os:linux": [],
+        "//conditions:default": ["@platforms//:incompatible"],
+    }),
+)

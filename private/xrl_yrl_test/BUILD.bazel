@@ -1,0 +1,38 @@
+load("//:erlang_xrl_yrl.bzl", "erlang_xrl_yrl")
+load("//tools:erlang_toolchain.bzl", "erlang_toolchain")
+load(":xrl_yrl_test.bzl", "fake_release_otp", "xrl_yrl_test_suite")
+
+# An erlang that ships as a release tar. Nothing here runs: the tests
+# only inspect the ERLC action of erlang_xrl_yrl.
+fake_release_otp(
+    name = "fake_otp",
+    release_dir_tar = "fake_release.tar",
+    version_file = "fake_otp_version",
+)
+
+erlang_toolchain(
+    name = "fake_erlang",
+    otp = ":fake_otp",
+)
+
+toolchain(
+    name = "fake_toolchain",
+    toolchain = ":fake_erlang",
+    toolchain_type = "//tools:toolchain_type",
+)
+
+erlang_xrl_yrl(
+    name = "lexer",
+    srcs = ["lexer.xrl"],
+    outs = ["lexer.erl"],
+    tags = ["manual"],
+)
+
+erlang_xrl_yrl(
+    name = "parser",
+    srcs = ["parser.yrl"],
+    outs = ["parser.erl"],
+    tags = ["manual"],
+)
+
+xrl_yrl_test_suite(name = "xrl_yrl_test")
