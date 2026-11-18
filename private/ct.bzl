@@ -130,7 +130,7 @@ set -eo pipefail
 {maybe_install_erlang}
 
 COVER_ARGS=
-if [ -n "${{COVERAGE}}" ]; then
+if [ -n "{coverage}" ] && [ -n "${{COVERAGE}}" ]; then
     cat << EOF > "${{TEST_UNDECLARED_OUTPUTS_DIR}}/ct.cover.spec"
 {{incl_app, '{app_name}', details}}.
 {{incl_dirs, {apps_ebin_dirs_term}}}.
@@ -194,13 +194,14 @@ set -x
     -hidden \\
     -sname {sname} ${{COVER_ARGS}} {extra_args}
 set +x
-if [ -n "${{COVERAGE}}" ]; then
+if [ -n "{coverage}" ] && [ -n "${{COVERAGE}}" ]; then
     "{erlang_home}"/bin/escript $TEST_SRCDIR/$TEST_WORKSPACE/{coverdata_to_lcov} \\
         ${{COVERAGE_OUTPUT_FILE}} \\
         ${{COVERAGE_OUTPUT_FILE}} \\
         > ${{TEST_UNDECLARED_OUTPUTS_DIR}}/coverdata_to_lcov.log
 fi
 """.format(
+            coverage = "1" if ctx.configuration.coverage_enabled else "",
             maybe_install_erlang = maybe_install_erlang(ctx, short_path = True),
             app_name = app_name,
             apps_ebin_dirs_term = to_erlang_string_list(apps_ebin_dirs),
@@ -271,6 +272,17 @@ if NOT [{package}] == [] cd {package}
 
 if not exist "{drive_letter}:" mkdir {drive_letter}:
 
+if [{coverage}] == [] set "COVERAGE="
+set "COVER_ARGS="
+if not defined COVERAGE goto :no_cover
+set "COVERAGE_OUT=%COVERAGE_OUTPUT_FILE:\\=/%"
+set "COVER_SRCDIR=%TEST_SRCDIR:\\=/%"
+set "COVER_SPEC=%TEST_UNDECLARED_OUTPUTS_DIR:/=\\%\\ct.cover.spec"
+echo {{incl_app, '{app_name}', details}}.> "%COVER_SPEC%"
+echo {{incl_dirs, {apps_ebin_dirs_term}}}.>> "%COVER_SPEC%"
+echo {{export, "%COVERAGE_OUT%"}}.>> "%COVER_SPEC%"
+set "COVER_ARGS=-cover "%COVER_SPEC:\\=/%""
+:no_cover
 echo on
 "{erlang_home}\\bin\\ct_run" ^
     -no_auto_compile ^
@@ -279,13 +291,22 @@ echo on
     -dir test {pa_args} ^
     -logdir {drive_letter}: ^
     -hidden ^
-    -sname {sname} {extra_args}
+    -sname {sname} %COVER_ARGS% {extra_args}
 set CT_RUN_ERRORLEVEL=%ERRORLEVEL%
 subst {drive_letter}: /d
-exit /b %CT_RUN_ERRORLEVEL%
+if not [%CT_RUN_ERRORLEVEL%] == [0] exit /b %CT_RUN_ERRORLEVEL%
+@echo off
+if not defined COVERAGE exit /b 0
+set "COVERAGE_LOG=%TEST_UNDECLARED_OUTPUTS_DIR:/=\\%\\coverdata_to_lcov.log"
+"{erlang_home}\\bin\\escript.exe" "%TEST_SRCDIR%/%TEST_WORKSPACE%/{coverdata_to_lcov}" "%COVERAGE_OUTPUT_FILE%" "%COVERAGE_OUTPUT_FILE%" > "%COVERAGE_LOG%" || exit /b 1
+exit /b 0
 :skip_test
 """.format(
             package = package,
+            coverage = "1" if ctx.configuration.coverage_enabled else "",
+            app_name = app_name,
+            apps_ebin_dirs_term = to_erlang_string_list([d.replace("$TEST_SRCDIR", "%COVER_SRCDIR%").replace("$TEST_WORKSPACE", "%TEST_WORKSPACE%") for d in apps_ebin_dirs]),
+            coverdata_to_lcov = coverdata_to_lcov_path,
             erlang_home = windows_path(erlang_home),
             erl_libs_path = erl_libs_path,
             shard_suite = shard_suite_path,

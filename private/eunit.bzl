@@ -132,7 +132,7 @@ fi
 
 COVER_PRE=
 COVER_POST=
-if [ -n "${{COVERAGE}}" ]; then
+if [ -n "{coverage}" ] && [ -n "${{COVERAGE}}" ]; then
     COVER_PRE="[case cover:compile_beam_directory(D) of {{error, _}} -> halt(1); _ -> ok end || D <- {apps_ebin_dirs_term}], "
     COVER_POST="cover:export(\\"${{COVERAGE_OUTPUT_FILE}}\\"), "
 fi
@@ -141,13 +141,14 @@ set -x
     {pa_args} {extra_args} \\
     -eval "${{COVER_PRE}}case eunit:test({eunit_mods_term},{eunit_opts_term}) of ok -> ok; error -> halt(2) end, ${{COVER_POST}}halt()."
 set +x
-if [ -n "${{COVERAGE}}" ]; then
+if [ -n "{coverage}" ] && [ -n "${{COVERAGE}}" ]; then
     "{erlang_home}"/bin/escript $TEST_SRCDIR/$TEST_WORKSPACE/{coverdata_to_lcov} \\
         ${{COVERAGE_OUTPUT_FILE}} \\
         ${{COVERAGE_OUTPUT_FILE}} \\
         > ${{TEST_UNDECLARED_OUTPUTS_DIR}}/coverdata_to_lcov.log
 fi
 """.format(
+            coverage = "1" if ctx.configuration.coverage_enabled else "",
             maybe_install_erlang = maybe_install_erlang(ctx, short_path = True),
             erlang_home = erlang_home,
             apps_ebin_dirs_term = _quote(to_erlang_string_list(apps_ebin_dirs)),
@@ -177,11 +178,27 @@ set ERL_LIBS=%ERL_LIBS:/=\\%
 
 if NOT [{package}] == [] cd {package}
 
+if [{coverage}] == [] set "COVERAGE="
+set "COVER_PRE="
+set "COVER_POST="
+set "COVER_ARGS="
+if defined COVERAGE set "COVER_PRE=[case cover:compile_beam_directory(D) of {{error, _}} -> halt(1); _ -> ok end || D <- hd(element(2, init:get_argument(cover_dirs)))], "
+if defined COVERAGE set "COVER_POST=cover:export(hd(hd(element(2, init:get_argument(cover_out))))), "
+if defined COVERAGE set "COVERAGE_OUT=%COVERAGE_OUTPUT_FILE:\\=/%"
+if defined COVERAGE set COVER_ARGS=-cover_dirs {apps_ebin_dirs_args} -cover_out "%COVERAGE_OUT%"
+
 echo on
 "{erlang_home}\\bin\\erl" +A1 -noinput -boot no_dot_erlang ^
-    {pa_args} {extra_args} ^
-    -eval "case eunit:test({eunit_mods_term},{eunit_opts_term}) of ok -> ok; error -> halt(2) end, halt()" || exit /b 1
+    {pa_args} %COVER_ARGS% {extra_args} ^
+    -eval "%COVER_PRE%case eunit:test({eunit_mods_term},{eunit_opts_term}) of ok -> ok; error -> halt(2) end, %COVER_POST%halt()" || exit /b 1
+@echo off
+if not defined COVERAGE exit /b 0
+set "COVERAGE_LOG=%TEST_UNDECLARED_OUTPUTS_DIR:/=\\%\\coverdata_to_lcov.log"
+"{erlang_home}\\bin\\escript.exe" "%TEST_SRCDIR%/%TEST_WORKSPACE%/{coverdata_to_lcov}" "%COVERAGE_OUTPUT_FILE%" "%COVERAGE_OUTPUT_FILE%" > "%COVERAGE_LOG%" || exit /b 1
 """.format(
+            coverage = "1" if ctx.configuration.coverage_enabled else "",
+            apps_ebin_dirs_args = " ".join(['"{}"'.format(d.replace("$TEST_SRCDIR", "%TEST_SRCDIR%").replace("$TEST_WORKSPACE", "%TEST_WORKSPACE%")) for d in apps_ebin_dirs]),
+            coverdata_to_lcov = coverdata_to_lcov_path,
             package = package,
             erlang_home = windows_path(erlang_home),
             erl_libs_path = erl_libs_path if len(erl_libs_files) > 0 else "",
