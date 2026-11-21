@@ -136,6 +136,11 @@ if [ -n "${{COVERAGE}}" ]; then
     COVER_PRE="[case cover:compile_beam_directory(D) of {{error, _}} -> halt(1); _ -> ok end || D <- {apps_ebin_dirs_term}], "
     COVER_POST="cover:export(\\"${{COVERAGE_OUTPUT_FILE}}\\"), "
 fi
+# Every NIF in the VM writes its own LLVM profile: two NIFs with the same
+# layout share a %m signature and clobber each other. %b (build id) is ELF only.
+if [ -n "${{LLVM_PROFILE_FILE:-}}" ] && [ "$(uname -s)" = Linux ]; then
+    export LLVM_PROFILE_FILE="${{LLVM_PROFILE_FILE//\\%m/%b-%m}}"
+fi
 set -x
 "{erlang_home}"/bin/erl +A1 -noinput -boot no_dot_erlang \\
     {pa_args} {extra_args} \\
