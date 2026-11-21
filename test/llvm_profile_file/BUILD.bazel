@@ -1,0 +1,44 @@
+load("@rules_erlang//:ct.bzl", "ct_test")
+load("@rules_erlang//:erlang_bytecode.bzl", "erlang_bytecode")
+load("@rules_erlang//:eunit2.bzl", "eunit")
+
+LLVM_PROFILE_FILE_ENV = {
+    "LLVM_PROFILE_FILE": "prof/%h-%p-%m.profraw",
+}
+
+# A Windows set command would expand the % patterns.
+UNIX_ONLY = select({
+    "@platforms//os:osx": [],
+    "@platforms//os:linux": [],
+    "//conditions:default": ["@platforms//:incompatible"],
+})
+
+erlang_bytecode(
+    name = "eunit_beam_files",
+    testonly = True,
+    srcs = ["llvm_profile_file_tests.erl"],
+    dest = "test",
+)
+
+eunit(
+    name = "eunit",
+    compiled_suites = [":eunit_beam_files"],
+    eunit_mods = ["llvm_profile_file_tests"],
+    target_compatible_with = UNIX_ONLY,
+    test_env = LLVM_PROFILE_FILE_ENV,
+)
+
+erlang_bytecode(
+    name = "llvm_profile_file_SUITE_beam_files",
+    testonly = True,
+    srcs = ["llvm_profile_file_SUITE.erl"],
+    dest = "test",
+)
+
+ct_test(
+    name = "llvm_profile_file_SUITE",
+    compiled_suites = [":llvm_profile_file_SUITE_beam_files"],
+    target_compatible_with = UNIX_ONLY,
+    test_env = LLVM_PROFILE_FILE_ENV,
+    deps = [],
+)
